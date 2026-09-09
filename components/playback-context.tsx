@@ -65,7 +65,7 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
     audio.removeAttribute("src");
     setLoading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 3000));
+      await new Promise((resolve) => setTimeout(resolve, 500));
       if (gen !== loadGenRef.current) return;
 
       const response = await fetch(`/api/audio/${id}`);

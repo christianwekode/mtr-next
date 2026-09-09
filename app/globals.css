@@ -1,0 +1,30 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+@source "../node_modules/streamdown/dist/*.js";
+
+:root {
+  --background: #ffffff;
+  --foreground: #141414;
+}
+
+@theme inline {
+  --color-background: #ffffff;
+  --color-foreground: #141414;
+  --color-muted: #f5f5f5;
+  --color-muted-foreground: #141414bd;
+  --color-border: #14141414;
+  --color-primary: #141414;
+  --color-primary-foreground: #ffffff;
+  --font-sans: "Geist", "Geist Fallback", ui-sans-serif, system-ui, sans-serif;
+}
+
+html,
+body {
+  height: 100%;
+  background: #ffffff;
+  color: #141414;
+}
+
+body {
+  font-family: var(--font-sans);
+}

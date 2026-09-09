@@ -15,7 +15,7 @@
   --color-border: #14141414;
   --color-primary: #141414;
   --color-primary-foreground: #ffffff;
-  --font-sans: "Geist", "Geist Fallback", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: system-ui, sans-serif;
 }
 
 html,

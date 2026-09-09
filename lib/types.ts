@@ -21,6 +21,7 @@ export type TranscriptionDetail = TranscriptionListItem & {
   language: string | null;
   duration_seconds: number | null;
   fragment_count: number | null;
+  audio_storage_path: string | null;
   error_message: string | null;
 };
 

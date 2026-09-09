@@ -1,5 +1,6 @@
 "use client";
 
+import { TranscriptionPlayer } from "@/components/transcription-player";
 import { formatDuration, formatRecordedAt, listTitle } from "@/lib/format";
 import type { TranscriptionDetail } from "@/lib/types";
 
@@ -37,7 +38,7 @@ export function TranscriptionPane({ folderName, detail, loading }: Transcription
   );
 }
 
-function DetailBody({
+function TitleBlock({
   folderName,
   detail,
 }: {
@@ -51,12 +52,35 @@ function DetailBody({
     detail.language,
   ].filter(Boolean);
 
+  return (
+    <div className="relative flex w-[640px] max-w-full flex-col gap-2 pb-8">
+      <div className="flex items-center gap-2.5">
+        {detail.audio_storage_path ? (
+          <TranscriptionPlayer
+            key={detail.id}
+            transcriptionId={detail.id}
+            durationSeconds={detail.duration_seconds}
+          />
+        ) : null}
+        <h1 className="min-w-0 font-sans text-xl/7 text-[#141414]">{listTitle(detail)}</h1>
+      </div>
+      <p className="text-xs leading-4 text-[#141414BD]">{meta.join(" · ")}</p>
+    </div>
+  );
+}
+
+function DetailBody({
+  folderName,
+  detail,
+}: {
+  folderName: string | null;
+  detail: TranscriptionDetail;
+}) {
   if (detail.status === "failed") {
     return (
-      <div className="flex w-[640px] max-w-full flex-col gap-2 pb-8">
-        <h1 className="font-sans text-xl/7 text-[#141414]">{listTitle(detail)}</h1>
-        <p className="text-xs leading-4 text-[#141414BD]">{meta.join(" · ")}</p>
-        <p className="pt-6 text-[13px]/5 text-[#141414]">
+      <div className="flex w-[640px] max-w-full flex-col">
+        <TitleBlock folderName={folderName} detail={detail} />
+        <p className="text-[13px]/5 text-[#141414]">
           {detail.error_message || "La transcripción falló."}
         </p>
       </div>
@@ -65,10 +89,9 @@ function DetailBody({
 
   if (detail.status === "processing") {
     return (
-      <div className="flex w-[640px] max-w-full flex-col gap-2 pb-8">
-        <h1 className="font-sans text-xl/7 text-[#141414]">{listTitle(detail)}</h1>
-        <p className="text-xs leading-4 text-[#141414BD]">{meta.join(" · ")}</p>
-        <p className="pt-6 text-[13px]/5 text-[#141414BD]">Transcribiendo el audio…</p>
+      <div className="flex w-[640px] max-w-full flex-col">
+        <TitleBlock folderName={folderName} detail={detail} />
+        <p className="text-[13px]/5 text-[#141414BD]">Transcribiendo el audio…</p>
       </div>
     );
   }
@@ -80,10 +103,7 @@ function DetailBody({
 
   return (
     <>
-      <div className="flex w-[640px] max-w-full flex-col gap-2 pb-8">
-        <h1 className="font-sans text-xl/7 text-[#141414]">{listTitle(detail)}</h1>
-        <p className="text-xs leading-4 text-[#141414BD]">{meta.join(" · ")}</p>
-      </div>
+      <TitleBlock folderName={folderName} detail={detail} />
       <article className="prose prose-neutral w-[640px] max-w-full prose-headings:mb-3 prose-headings:mt-0 prose-headings:text-[13px]/5 prose-headings:font-semibold prose-p:my-0 prose-p:mb-6 prose-p:text-[13px]/5 prose-p:text-[#141414] prose-li:text-[13px]/5">
         {paragraphs.length === 0 ? (
           <p>Esta transcripción no tiene texto todavía.</p>

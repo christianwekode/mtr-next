@@ -28,3 +28,48 @@ body {
 body {
   font-family: var(--font-sans);
 }
+
+.audio-scrubber {
+  --audio-progress: 0%;
+}
+
+.audio-scrubber::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to right,
+    #e11d48 var(--audio-progress),
+    #14141414 var(--audio-progress)
+  );
+}
+
+.audio-scrubber::-webkit-slider-thumb {
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  margin-top: -4px;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: 0 0 0 2px #e11d48;
+}
+
+.audio-scrubber::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background: #14141414;
+}
+
+.audio-scrubber::-moz-range-progress {
+  height: 4px;
+  border-radius: 999px;
+  background: #e11d48;
+}
+
+.audio-scrubber::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: 0;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: 0 0 0 2px #e11d48;
+}

@@ -8,6 +8,7 @@ import {
   Loading03Icon,
 } from "@hugeicons/core-free-icons";
 import { Icon } from "@/components/icon";
+import { NowPlayingBar } from "@/components/transcription-player";
 import { listTitle } from "@/lib/format";
 import type { Folder, TranscriptionListItem } from "@/lib/types";
 
@@ -92,6 +93,7 @@ export function Sidebar({
           </div>
         ) : null}
       </div>
+      <NowPlayingBar />
     </aside>
   );
 }

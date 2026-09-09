@@ -1,6 +1,6 @@
 "use client";
 
-import { TranscriptionPlayer } from "@/components/transcription-player";
+import { TranscriptionPlayButton } from "@/components/transcription-player";
 import { formatDuration, formatRecordedAt, listTitle } from "@/lib/format";
 import type { TranscriptionDetail } from "@/lib/types";
 
@@ -53,12 +53,12 @@ function TitleBlock({
   ].filter(Boolean);
 
   return (
-    <div className="relative flex w-[640px] max-w-full flex-col gap-2 pb-8">
+    <div className="flex w-[640px] max-w-full flex-col gap-2 pb-8">
       <div className="flex items-center gap-2.5">
         {detail.audio_storage_path ? (
-          <TranscriptionPlayer
-            key={detail.id}
+          <TranscriptionPlayButton
             transcriptionId={detail.id}
+            title={listTitle(detail)}
             durationSeconds={detail.duration_seconds}
           />
         ) : null}

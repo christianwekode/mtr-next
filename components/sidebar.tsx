@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  AlertCircleIcon,
-  ArrowRight01Icon,
-  File02Icon,
-  Folder02Icon,
-  Loading03Icon,
-} from "@hugeicons/core-free-icons";
+import { ArrowRight01Icon, File02Icon, Folder02Icon, Loading03Icon } from "@hugeicons/core-free-icons";
 import { Icon } from "@/components/icon";
 import { NowPlayingBar } from "@/components/transcription-player";
 import { listTitle } from "@/lib/format";
@@ -32,10 +26,11 @@ export function Sidebar({
   onSelect,
 }: SidebarProps) {
   const needle = query.trim().toLowerCase();
+  const visible = transcriptions.filter((item) => item.status !== "failed");
   const matches = (item: TranscriptionListItem) =>
     !needle || listTitle(item).toLowerCase().includes(needle);
 
-  const unfiled = transcriptions.filter((item) => item.folder_id == null && matches(item));
+  const unfiled = visible.filter((item) => item.folder_id == null && matches(item));
 
   return (
     <aside className="flex h-full w-[280px] shrink-0 flex-col border-r border-[#14141414] bg-white">
@@ -44,7 +39,7 @@ export function Sidebar({
           <span className="text-xs leading-4 text-[#14141499]">Transcripciones</span>
         </div>
         {folders.map((folder) => {
-          const items = transcriptions.filter((item) => item.folder_id === folder.id && matches(item));
+          const items = visible.filter((item) => item.folder_id === folder.id && matches(item));
           const expanded = expandedFolderIds.has(folder.id);
           return (
             <div key={folder.id}>
@@ -118,8 +113,6 @@ function TranscriptionRow({
       <span className="flex size-4 shrink-0 items-center justify-center">
         {item.status === "processing" ? (
           <Icon icon={Loading03Icon} size={16} className="animate-spin" color="#6bd668" />
-        ) : item.status === "failed" ? (
-          <Icon icon={AlertCircleIcon} size={16} color="#141414A8" />
         ) : (
           <Icon icon={File02Icon} size={16} />
         )}

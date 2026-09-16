@@ -1,6 +1,5 @@
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
-
-const AUDIO_BUCKET = "audio_fragments";
+import { AUDIO_BUCKET } from "@/lib/storage";
 
 export const runtime = "nodejs";
 

@@ -1,9 +1,8 @@
 import { openai } from "@ai-sdk/openai";
 import { embedMany, transcribe } from "ai";
 import { chunkTranscription } from "@/lib/chunk";
+import { AUDIO_BUCKET } from "@/lib/storage";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
-
-const AUDIO_BUCKET = "mtr-audio";
 
 export async function processTranscription(transcriptionId: string): Promise<void> {
   const supabase = getSupabaseAdmin();
@@ -92,5 +91,3 @@ export async function processTranscription(transcriptionId: string): Promise<voi
     throw error;
   }
 }
-
-export { AUDIO_BUCKET };

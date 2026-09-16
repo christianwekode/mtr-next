@@ -17,8 +17,14 @@ export function getSupabaseBrowser(): SupabaseClient {
   return browserClient;
 }
 
+export const FOLDER_COLUMNS = "id, name, slug, sort_order" as const;
+
 export const TRANSCRIPTION_LIST_COLUMNS =
   "id, short_title, status, folder_id, recorded_at, session_key" as const;
 
 export const TRANSCRIPTION_DETAIL_COLUMNS =
   "id, short_title, status, folder_id, recorded_at, session_key, body, language, duration_seconds, fragment_count, audio_storage_path, error_message" as const;
+
+export const CHAT_LIST_COLUMNS = "id, title, active_transcription_id, created_at, updated_at" as const;
+
+export const CHAT_MESSAGE_COLUMNS = "id, chat_id, role, content, created_at" as const;

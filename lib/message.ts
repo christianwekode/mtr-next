@@ -17,10 +17,3 @@ export function toUiMessages(
     parts: [{ type: "text" as const, text: row.content }],
   }));
 }
-
-export function isAboutActiveMeeting(question: string, hasActive: boolean): boolean {
-  if (!hasActive) return false;
-  return !/todas las (reuniones|transcripciones)|cualquier (reunión|reunion|transcripci[oó]n)|otras reuniones|en general/i.test(
-    question,
-  );
-}

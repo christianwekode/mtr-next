@@ -9,6 +9,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import type { UIMessage } from "ai";
 import { useEffect, useRef, useState } from "react";
+import { Streamdown } from "streamdown";
 import { Composer } from "@/components/composer";
 import { Icon } from "@/components/icon";
 import { chatDayLabel, chatDisplayTitle, formatChatAge } from "@/lib/format";
@@ -93,7 +94,7 @@ export function ChatPane({
       {messages.length === 0 ? (
         <EmptyConversation onPick={submit} compact={variant === "sidebar"} />
       ) : (
-        <MessageList messages={messages} compact={variant === "sidebar"} />
+        <MessageList messages={messages} compact={variant === "sidebar"} streaming={status === "streaming"} />
       )}
       <Composer
         value={input}
@@ -158,9 +159,12 @@ function ChatHeader({
       </div>
       <button
         type="button"
-        onClick={onToggleLayout}
-        className={`flex items-center text-[#141414A8] ${hasTranscription ? "" : "opacity-40"}`}
-        disabled={!hasTranscription}
+        onClick={() => {
+          if (!hasTranscription) return;
+          onToggleLayout();
+        }}
+        className={`flex items-center text-[#141414A8] ${hasTranscription ? "" : "pointer-events-none opacity-40"}`}
+        aria-disabled={!hasTranscription}
         aria-pressed={showTranscriptionPane}
         aria-label="Alternar panel de transcripción"
       >
@@ -286,7 +290,15 @@ function EmptyConversation({ onPick, compact }: { onPick: (text: string) => void
   );
 }
 
-function MessageList({ messages, compact }: { messages: UIMessage[]; compact: boolean }) {
+function MessageList({
+  messages,
+  compact,
+  streaming,
+}: {
+  messages: UIMessage[];
+  compact: boolean;
+  streaming: boolean;
+}) {
   const bottomRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: "end" });
@@ -298,15 +310,28 @@ function MessageList({ messages, compact }: { messages: UIMessage[]; compact: bo
         compact ? "gap-6 p-4" : "items-center gap-6 px-6 pb-4 pt-6"
       }`}
     >
-      {messages.map((message) => (
-        <ChatMessage key={message.id} message={message} compact={compact} />
+      {messages.map((message, index) => (
+        <ChatMessage
+          key={message.id}
+          message={message}
+          compact={compact}
+          streaming={streaming && index === messages.length - 1}
+        />
       ))}
       <div ref={bottomRef} />
     </div>
   );
 }
 
-function ChatMessage({ message, compact }: { message: UIMessage; compact: boolean }) {
+function ChatMessage({
+  message,
+  compact,
+  streaming,
+}: {
+  message: UIMessage;
+  compact: boolean;
+  streaming: boolean;
+}) {
   const text = uiMessageText(message);
   const width = compact ? "w-full" : "w-[640px] max-w-full";
 
@@ -322,65 +347,18 @@ function ChatMessage({ message, compact }: { message: UIMessage; compact: boolea
 
   return (
     <div className={`flex flex-col gap-3 ${width}`}>
-      <AssistantBody text={text} />
+      {text ? (
+        <Streamdown
+          mode={streaming ? "streaming" : "static"}
+          animated={streaming}
+          controls={false}
+          className="prose prose-neutral max-w-none prose-headings:mb-0 prose-headings:mt-0 prose-headings:text-[13px]/5 prose-headings:font-semibold prose-p:my-0 prose-p:text-[13px]/5 prose-p:text-[#141414] prose-li:text-[13px]/5 prose-ul:my-0 prose-ol:my-0"
+        >
+          {text}
+        </Streamdown>
+      ) : (
+        <p className="text-[13px]/5 text-[#141414BD]">…</p>
+      )}
     </div>
-  );
-}
-
-function renderInline(text: string) {
-  const parts = text.split(/(\*\*.+?\*\*)/g);
-  return parts.map((part, index) => {
-    if (part.startsWith("**") && part.endsWith("**") && part.length >= 4) {
-      return <strong key={index}>{part.slice(2, -2)}</strong>;
-    }
-    return part;
-  });
-}
-
-function AssistantBody({ text }: { text: string }) {
-  const blocks = text.split(/\n{2,}/).map((block) => block.trim()).filter(Boolean);
-  if (blocks.length === 0) {
-    return <p className="text-[13px]/5 text-[#141414BD]">…</p>;
-  }
-
-  return (
-    <>
-      {blocks.map((block, index) => {
-        const lines = block.split("\n").map((line) => line.trim()).filter(Boolean);
-        const isList = lines.length > 1 && lines.every((line) => /^[-*•]\s+/.test(line));
-        const isTitle = index === 0 && lines.length === 1 && lines[0].length < 80 && !lines[0].endsWith(".");
-
-        if (isTitle) {
-          return (
-            <p key={index} className="text-[13px]/5 font-semibold text-[#141414]">
-              {renderInline(lines[0])}
-            </p>
-          );
-        }
-
-        if (isList) {
-          return (
-            <ul key={index} className="flex w-full flex-col gap-2">
-              {lines.map((line, lineIndex) => (
-                <li key={lineIndex} className="flex items-start gap-2.5">
-                  <span className="flex h-5 w-4 shrink-0 items-center justify-center">
-                    <span className="size-1.25 rounded-full bg-[#141414]" />
-                  </span>
-                  <span className="text-[13px]/5 text-[#141414]">
-                    {renderInline(line.replace(/^[-*•]\s*/, ""))}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          );
-        }
-
-        return (
-          <p key={index} className="text-[13px]/5 text-[#141414]">
-            {renderInline(block)}
-          </p>
-        );
-      })}
-    </>
   );
 }

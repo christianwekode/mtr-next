@@ -67,16 +67,6 @@ export function chatDayLabel(iso: string): string {
   return DATE_FORMATTER.format(date);
 }
 
-export function formatMessageStamp(iso: string): string {
-  const date = new Date(iso);
-  const time = new Intl.DateTimeFormat("es-ES", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  }).format(date);
-  return `${chatDayLabel(iso)} ${time}`;
-}
-
 export function chatDisplayTitle(title: string | null): string {
   return title?.trim() || "Nuevo chat";
 }

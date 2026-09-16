@@ -1,11 +1,20 @@
 import { openai } from "@ai-sdk/openai";
 import { embed } from "ai";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { isAboutActiveMeeting } from "@/lib/message";
 import { formatRecordedAt } from "@/lib/format";
 import type { MatchedChunk } from "@/lib/types";
 
 const MATCH_COUNT = 8;
+
+function isAboutActiveMeeting(
+  question: string,
+  activeTranscriptionId: string | null,
+): activeTranscriptionId is string {
+  if (!activeTranscriptionId) return false;
+  return !/todas las (reuniones|transcripciones)|cualquier (reunión|reunion|transcripci[oó]n)|otras reuniones|en general/i.test(
+    question,
+  );
+}
 
 type RankedChunk = MatchedChunk & {
   short_title: string | null;
@@ -18,8 +27,8 @@ export async function retrieveChunks(question: string, activeTranscriptionId: st
     value: question,
   });
 
-  const filter = isAboutActiveMeeting(question, Boolean(activeTranscriptionId))
-    ? [activeTranscriptionId as string]
+  const filter = isAboutActiveMeeting(question, activeTranscriptionId)
+    ? [activeTranscriptionId]
     : null;
 
   const supabase = getSupabaseAdmin();

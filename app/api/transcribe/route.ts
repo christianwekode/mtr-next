@@ -1,5 +1,6 @@
 import { after } from "next/server";
-import { AUDIO_BUCKET, processTranscription } from "@/lib/process-transcription";
+import { processTranscription } from "@/lib/process-transcription";
+import { AUDIO_BUCKET } from "@/lib/storage";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 export const maxDuration = 300;
@@ -28,8 +29,6 @@ export async function POST(request: Request) {
   const transcriptionId = crypto.randomUUID();
   const safeName = file.name.replace(/[^\w.\-]+/g, "_") || "audio";
   const audioPath = `${transcriptionId}/${safeName}`;
-
-  await supabase.storage.createBucket(AUDIO_BUCKET, { public: false }).catch(() => undefined);
 
   const bytes = new Uint8Array(await file.arrayBuffer());
   const { error: uploadError } = await supabase.storage

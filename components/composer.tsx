@@ -59,8 +59,8 @@ export function Composer({
         <span className="shrink-0 text-[13px]/[18px] text-[#141414BD]">mtr</span>
         <button
           type="submit"
-          disabled={disabled || !value.trim()}
-          className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[#141414] text-[#FCFCFC] disabled:opacity-40"
+          aria-disabled={Boolean(disabled) || !value.trim()}
+          className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[#141414] text-[#FCFCFC] aria-disabled:opacity-40"
           aria-label="Enviar"
         >
           <Icon icon={ArrowRight02Icon} size={14} color="#FCFCFC" />

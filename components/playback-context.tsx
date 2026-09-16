@@ -23,11 +23,18 @@ type PlaybackContextValue = {
 
 const PlaybackContext = createContext<PlaybackContextValue | null>(null);
 
+function clearAudio(audio: HTMLAudioElement | null) {
+  if (!audio) return;
+  audio.pause();
+  audio.removeAttribute("src");
+  audio.currentTime = 0;
+}
+
 export function PlaybackProvider({ children }: { children: React.ReactNode }) {
   const audioRef = useRef<HTMLAudioElement>(null);
-  const srcRef = useRef<string | null>(null);
   const trackIdRef = useRef<string | null>(null);
-  const loadGenRef = useRef(0);
+  const loadedIdRef = useRef<string | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
   const [track, setTrack] = useState<PlaybackTrack | null>(null);
   const [playing, setPlaying] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -35,14 +42,11 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
   const [duration, setDuration] = useState(0);
 
   const stop = useCallback(() => {
-    loadGenRef.current += 1;
-    const audio = audioRef.current;
-    if (audio) {
-      audio.pause();
-      audio.currentTime = 0;
-    }
-    srcRef.current = null;
+    abortRef.current?.abort();
+    abortRef.current = null;
     trackIdRef.current = null;
+    loadedIdRef.current = null;
+    clearAudio(audioRef.current);
     setTrack(null);
     setPlaying(false);
     setLoading(false);
@@ -55,61 +59,50 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
     setPlaying(false);
   }, []);
 
-  const ensureSrc = useCallback(async (id: string) => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    if (srcRef.current && trackIdRef.current === id) return;
-
-    const gen = loadGenRef.current;
-    srcRef.current = null;
-    audio.removeAttribute("src");
-    setLoading(true);
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      if (gen !== loadGenRef.current) return;
-
-      const response = await fetch(`/api/audio/${id}`);
-      const payload = (await response.json()) as { url?: string; error?: string };
-      if (!response.ok || !payload.url) {
-        throw new Error(payload.error ?? "No se pudo cargar la grabación");
-      }
-      if (gen !== loadGenRef.current) return;
-      srcRef.current = payload.url;
-      audio.src = payload.url;
-    } finally {
-      if (gen === loadGenRef.current) setLoading(false);
-    }
-  }, []);
-
   const play = useCallback(
     async (next: PlaybackTrack) => {
       const audio = audioRef.current;
       if (!audio) return;
 
       if (trackIdRef.current !== next.id) {
-        loadGenRef.current += 1;
-        srcRef.current = null;
-        audio.pause();
-        audio.removeAttribute("src");
-        audio.currentTime = 0;
+        abortRef.current?.abort();
+        clearAudio(audio);
+        trackIdRef.current = next.id;
+        loadedIdRef.current = null;
         setCurrentTime(0);
         setDuration(next.durationSeconds ?? 0);
       }
 
-      trackIdRef.current = next.id;
       setTrack(next);
+
       try {
-        await ensureSrc(next.id);
-        if (trackIdRef.current !== next.id || !srcRef.current) return;
+        if (loadedIdRef.current !== next.id) {
+          const controller = new AbortController();
+          abortRef.current = controller;
+          setLoading(true);
+          const response = await fetch(`/api/audio/${next.id}`, { signal: controller.signal });
+          const payload = (await response.json()) as { url?: string; error?: string };
+          if (trackIdRef.current !== next.id) return;
+          if (!response.ok || !payload.url) {
+            throw new Error(payload.error ?? "No se pudo cargar la grabación");
+          }
+          audio.src = payload.url;
+          loadedIdRef.current = next.id;
+        }
+
+        if (trackIdRef.current !== next.id) return;
         await audio.play();
         setPlaying(true);
       } catch (error) {
+        if (trackIdRef.current !== next.id) return;
         if (error instanceof DOMException && error.name === "AbortError") return;
         stop();
         throw error;
+      } finally {
+        if (trackIdRef.current === next.id) setLoading(false);
       }
     },
-    [ensureSrc, stop],
+    [stop],
   );
 
   const toggle = useCallback(
@@ -130,8 +123,10 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    const audio = audioRef.current;
     return () => {
-      audioRef.current?.pause();
+      abortRef.current?.abort();
+      audio?.pause();
     };
   }, []);
 

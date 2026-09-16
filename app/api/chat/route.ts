@@ -4,8 +4,8 @@ import {
   streamText,
   type UIMessage,
 } from "ai";
+import { listTitle, truncateTitle } from "@/lib/format";
 import { uiMessageText } from "@/lib/message";
-import { truncateTitle } from "@/lib/format";
 import { buildRagSystemPrompt, retrieveChunks } from "@/lib/rag";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
@@ -35,57 +35,51 @@ export async function POST(request: Request) {
   }
 
   const supabase = getSupabaseAdmin();
-  const chunks = await retrieveChunks(question, activeTranscriptionId);
+  const [chunks, chatRes, transcriptionRes, modelMessages] = await Promise.all([
+    retrieveChunks(question, activeTranscriptionId),
+    supabase.from("mtr_chats").select("id, title, active_transcription_id").eq("id", chatId).maybeSingle(),
+    activeTranscriptionId
+      ? supabase
+          .from("mtr_transcriptions")
+          .select("short_title, session_key, recorded_at")
+          .eq("id", activeTranscriptionId)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    convertToModelMessages(messages),
+  ]);
 
-  const { data: chat } = await supabase
-    .from("mtr_chats")
-    .select("id, title, active_transcription_id")
-    .eq("id", chatId)
-    .maybeSingle();
-
-  if (!chat) {
+  if (!chatRes.data) {
     return Response.json({ error: "Chat no encontrado" }, { status: 404 });
   }
 
-  let activeTitle: string | null = null;
-  if (activeTranscriptionId) {
-    const { data: transcription } = await supabase
-      .from("mtr_transcriptions")
-      .select("short_title, session_key, recorded_at")
-      .eq("id", activeTranscriptionId)
-      .maybeSingle();
-    activeTitle = transcription?.short_title ?? transcription?.session_key ?? null;
+  const chat = chatRes.data;
+  const activeTitle = transcriptionRes.data ? listTitle(transcriptionRes.data) : null;
+
+  const chatPatch: { title?: string; active_transcription_id?: string | null } = {};
+  if (!chat.title) chatPatch.title = truncateTitle(question);
+  if (activeTranscriptionId !== chat.active_transcription_id) {
+    chatPatch.active_transcription_id = activeTranscriptionId;
   }
 
-  const { error: userInsertError } = await supabase.from("mtr_chat_messages").insert({
-    chat_id: chatId,
-    role: "user",
-    content: question,
-  });
+  const [userInsert] = await Promise.all([
+    supabase.from("mtr_chat_messages").insert({
+      chat_id: chatId,
+      role: "user",
+      content: question,
+    }),
+    Object.keys(chatPatch).length > 0
+      ? supabase.from("mtr_chats").update(chatPatch).eq("id", chatId)
+      : Promise.resolve({ error: null }),
+  ]);
 
-  if (userInsertError) {
-    return Response.json({ error: userInsertError.message }, { status: 500 });
-  }
-
-  if (!chat.title) {
-    await supabase
-      .from("mtr_chats")
-      .update({
-        title: truncateTitle(question),
-        active_transcription_id: activeTranscriptionId,
-      })
-      .eq("id", chatId);
-  } else if (activeTranscriptionId !== chat.active_transcription_id) {
-    await supabase
-      .from("mtr_chats")
-      .update({ active_transcription_id: activeTranscriptionId })
-      .eq("id", chatId);
+  if (userInsert.error) {
+    return Response.json({ error: userInsert.error.message }, { status: 500 });
   }
 
   const result = streamText({
     model: openai("gpt-5.4-mini"),
     system: buildRagSystemPrompt(chunks, activeTitle),
-    messages: await convertToModelMessages(messages),
+    messages: modelMessages,
   });
 
   return result.toUIMessageStreamResponse({
@@ -107,16 +101,17 @@ export async function POST(request: Request) {
 
       if (assistantError || !assistantRow) return;
 
-      if (chunks.length > 0) {
-        await supabase.from("mtr_chat_message_citations").insert(
-          chunks.map((chunk) => ({
-            message_id: assistantRow.id,
-            chunk_id: chunk.id,
-          })),
-        );
-      }
-
-      await supabase.from("mtr_chats").update({ updated_at: new Date().toISOString() }).eq("id", chatId);
+      await Promise.all([
+        chunks.length > 0
+          ? supabase.from("mtr_chat_message_citations").insert(
+              chunks.map((chunk) => ({
+                message_id: assistantRow.id,
+                chunk_id: chunk.id,
+              })),
+            )
+          : Promise.resolve(),
+        supabase.from("mtr_chats").update({ updated_at: new Date().toISOString() }).eq("id", chatId),
+      ]);
     },
   });
 }

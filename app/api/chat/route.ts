@@ -5,6 +5,7 @@ import {
   type UIMessage,
 } from "ai";
 import { listTitle, truncateTitle } from "@/lib/format";
+import { toPlainChatText, toTitleText } from "@/lib/mentions";
 import { uiMessageText } from "@/lib/message";
 import { buildRagSystemPrompt, retrieveChunks } from "@/lib/rag";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
@@ -29,10 +30,18 @@ export async function POST(request: Request) {
   }
 
   const lastUser = [...messages].reverse().find((message) => message.role === "user");
-  const question = lastUser ? uiMessageText(lastUser) : "";
+  const rawQuestion = lastUser ? uiMessageText(lastUser) : "";
+  const question = toPlainChatText(rawQuestion);
   if (!question) {
     return Response.json({ error: "Falta el mensaje del usuario" }, { status: 400 });
   }
+
+  const modelInput = messages.map((message) => ({
+    ...message,
+    parts: message.parts.map((part) =>
+      part.type === "text" ? { ...part, text: toPlainChatText(part.text) } : part,
+    ),
+  }));
 
   const supabase = getSupabaseAdmin();
   const [chunks, chatRes, transcriptionRes, modelMessages] = await Promise.all([
@@ -45,7 +54,7 @@ export async function POST(request: Request) {
           .eq("id", activeTranscriptionId)
           .maybeSingle()
       : Promise.resolve({ data: null }),
-    convertToModelMessages(messages),
+    convertToModelMessages(modelInput),
   ]);
 
   if (!chatRes.data) {
@@ -56,7 +65,7 @@ export async function POST(request: Request) {
   const activeTitle = transcriptionRes.data ? listTitle(transcriptionRes.data) : null;
 
   const chatPatch: { title?: string; active_transcription_id?: string | null } = {};
-  if (!chat.title) chatPatch.title = truncateTitle(question);
+  if (!chat.title) chatPatch.title = truncateTitle(toTitleText(rawQuestion));
   if (activeTranscriptionId !== chat.active_transcription_id) {
     chatPatch.active_transcription_id = activeTranscriptionId;
   }
@@ -65,7 +74,7 @@ export async function POST(request: Request) {
     supabase.from("mtr_chat_messages").insert({
       chat_id: chatId,
       role: "user",
-      content: question,
+      content: rawQuestion,
     }),
     Object.keys(chatPatch).length > 0
       ? supabase.from("mtr_chats").update(chatPatch).eq("id", chatId)

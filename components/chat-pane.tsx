@@ -12,9 +12,11 @@ import { useEffect, useRef, useState } from "react";
 import { Streamdown } from "streamdown";
 import { Composer } from "@/components/composer";
 import { Icon } from "@/components/icon";
+import { MentionBadge } from "@/components/mention-badge";
 import { chatDayLabel, chatDisplayTitle, formatChatAge } from "@/lib/format";
+import { parseMessageParts } from "@/lib/mentions";
 import { uiMessageText } from "@/lib/message";
-import type { ChatRow } from "@/lib/types";
+import type { ChatRow, TranscriptionListItem } from "@/lib/types";
 
 const SUGGESTIONS = [
   {
@@ -42,7 +44,9 @@ type ChatPaneProps = {
   onToggleLayout: () => void;
   onNewChat: () => void;
   onSelectChat: (id: string) => void;
+  transcriptions: TranscriptionListItem[];
   onSend: (text: string) => void;
+  onOpenTranscription: (id: string) => void;
   onAttachAudio: () => void;
 };
 
@@ -57,14 +61,14 @@ export function ChatPane({
   onToggleLayout,
   onNewChat,
   onSelectChat,
+  transcriptions,
   onSend,
+  onOpenTranscription,
   onAttachAudio,
 }: ChatPaneProps) {
   const [input, setInput] = useState("");
   const busy = status === "submitted" || status === "streaming";
-  const placeholder = hasTranscription
-    ? "Pregunta sobre esta transcripción"
-    : messages.length > 0
+  const placeholder = messages.length > 0
       ? "Sigue esta conversación"
       : "Pregunta sobre cualquier transcripción";
 
@@ -94,7 +98,12 @@ export function ChatPane({
       {messages.length === 0 ? (
         <EmptyConversation onPick={submit} compact={variant === "sidebar"} />
       ) : (
-        <MessageList messages={messages} compact={variant === "sidebar"} streaming={status === "streaming"} />
+        <MessageList
+          messages={messages}
+          compact={variant === "sidebar"}
+          streaming={status === "streaming"}
+          onOpenTranscription={onOpenTranscription}
+        />
       )}
       <Composer
         value={input}
@@ -103,6 +112,8 @@ export function ChatPane({
         placeholder={placeholder}
         disabled={busy}
         wide={variant === "full"}
+        transcriptions={transcriptions}
+        onOpenTranscription={onOpenTranscription}
         onAttachAudio={onAttachAudio}
       />
     </section>
@@ -294,10 +305,12 @@ function MessageList({
   messages,
   compact,
   streaming,
+  onOpenTranscription,
 }: {
   messages: UIMessage[];
   compact: boolean;
   streaming: boolean;
+  onOpenTranscription: (id: string) => void;
 }) {
   const bottomRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -316,6 +329,7 @@ function MessageList({
           message={message}
           compact={compact}
           streaming={streaming && index === messages.length - 1}
+          onOpenTranscription={onOpenTranscription}
         />
       ))}
       <div ref={bottomRef} />
@@ -327,10 +341,12 @@ function ChatMessage({
   message,
   compact,
   streaming,
+  onOpenTranscription,
 }: {
   message: UIMessage;
   compact: boolean;
   streaming: boolean;
+  onOpenTranscription: (id: string) => void;
 }) {
   const text = uiMessageText(message);
   const width = compact ? "w-full" : "w-[640px] max-w-full";
@@ -339,7 +355,20 @@ function ChatMessage({
     return (
       <div className={`flex ${width}`}>
         <div className="w-fit max-w-full rounded-2xl border border-[#14141414] bg-[#F5F5F5] px-3.5 py-2.5">
-          <p className="text-[13px]/[18px] text-[#141414]">{text}</p>
+          <p className="inline-flex max-w-full flex-wrap items-center gap-1 text-[13px]/[18px] text-[#141414]">
+            {parseMessageParts(text).map((part, index) =>
+              part.type === "mention" ? (
+                <MentionBadge
+                  key={`${part.id}-${index}`}
+                  id={part.id}
+                  label={part.label}
+                  onOpen={onOpenTranscription}
+                />
+              ) : (
+                <span key={`text-${index}`}>{part.value}</span>
+              ),
+            )}
+          </p>
         </div>
       </div>
     );

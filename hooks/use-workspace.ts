@@ -4,6 +4,7 @@ import { DefaultChatTransport } from "ai";
 import { useChat } from "@ai-sdk/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { truncateTitle } from "@/lib/format";
+import { lastMentionedTranscriptionId, toTitleText } from "@/lib/mentions";
 import {
   createChat,
   deleteChats,
@@ -123,6 +124,23 @@ export function useWorkspace() {
     }
   }, [loadDetail]);
 
+  const openTranscription = useCallback(
+    (id: string) => {
+      selectedIdRef.current = id;
+      setSelectedId(id);
+      setPaneHidden(false);
+      setExpandedFolderIds((current) => {
+        const folderId = transcriptions.find((item) => item.id === id)?.folder_id;
+        if (!folderId || current.has(folderId)) return current;
+        const next = new Set(current);
+        next.add(folderId);
+        return next;
+      });
+      void loadDetail(id);
+    },
+    [loadDetail, transcriptions],
+  );
+
   const selectTranscription = useCallback(
     (id: string) => {
       if (selectedId === id) {
@@ -131,13 +149,9 @@ export function useWorkspace() {
         setPaneHidden(false);
         return;
       }
-
-      selectedIdRef.current = id;
-      setSelectedId(id);
-      setPaneHidden(false);
-      void loadDetail(id);
+      openTranscription(id);
     },
-    [loadDetail, selectedId],
+    [openTranscription, selectedId],
   );
 
   const toggleFolder = useCallback((id: string) => {
@@ -188,7 +202,7 @@ export function useWorkspace() {
           chat.id === chatId
             ? {
                 ...chat,
-                title: chat.title?.trim() ? chat.title : truncateTitle(text),
+                title: chat.title?.trim() ? chat.title : truncateTitle(toTitleText(text)),
                 updated_at: now,
               }
             : chat,
@@ -203,7 +217,7 @@ export function useWorkspace() {
         {
           body: {
             chatId,
-            activeTranscriptionId: selectedId,
+            activeTranscriptionId: lastMentionedTranscriptionId(text) ?? selectedId,
           },
         },
       );
@@ -243,6 +257,7 @@ export function useWorkspace() {
     status,
     fileInputRef,
     selectTranscription,
+    openTranscription,
     toggleFolder,
     togglePane: () => setPaneHidden((hidden) => !hidden),
     handleNewChat,

@@ -1,7 +1,7 @@
 "use client";
 
 import { Add01Icon, ArrowRight02Icon } from "@hugeicons/core-free-icons";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, type RefObject, useState } from "react";
 import { MentionOptionItem, type MentionOption } from "@/components/composer/mention-option-item";
 import { Icon } from "@/components/icon";
 import { MentionBadge } from "@/components/mention-badge";
@@ -36,6 +36,7 @@ export type ComposerProps = {
   onMentionClick: (id: string, kind: MentionKind) => void;
   onAttachAudio: () => void;
   focusTick?: number;
+  inputRef?: RefObject<HTMLInputElement | null>;
 };
 
 export function Composer({
@@ -50,8 +51,10 @@ export function Composer({
   onMentionClick,
   onAttachAudio,
   focusTick = 0,
+  inputRef: inputRefProp,
 }: ComposerProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const localInputRef = useRef<HTMLInputElement>(null);
+  const inputRef = inputRefProp ?? localInputRef;
   const barRef = useRef<HTMLDivElement>(null);
   const mentionDismissedRef = useRef(false);
   const spaceKeyRef = useRef(false);

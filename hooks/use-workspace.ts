@@ -358,6 +358,7 @@ export function useWorkspace() {
         const rows = await fetchChatMessages(id);
         setCurrentChatId(id);
         setMessages(toUiMessages(rows));
+        setComposerFocusTick((tick) => tick + 1);
       } catch {
         return;
       }

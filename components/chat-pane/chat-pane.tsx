@@ -1,7 +1,7 @@
 "use client";
 
 import type { UIMessage } from "ai";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ChatHeader } from "@/components/chat-pane/chat-header";
 import { EmptyConversation } from "@/components/chat-pane/empty-conversation";
 import { MessageList } from "@/components/chat-pane/message-list";
@@ -46,6 +46,7 @@ export function ChatPane({
   onAttachAudio,
   composerFocusTick,
 }: ChatPaneProps) {
+  const composerInputRef = useRef<HTMLInputElement>(null);
   const [input, setInput] = useState("");
   const busy = status === "submitted" || status === "streaming";
   const placeholder = messages.length > 0
@@ -74,6 +75,7 @@ export function ChatPane({
         onToggleLayout={onToggleLayout}
         onNewChat={onNewChat}
         onSelectChat={onSelectChat}
+        composerInputRef={composerInputRef}
       />
       {messages.length === 0 ? (
         <EmptyConversation onPick={submit} compact={variant === "sidebar"} />
@@ -97,6 +99,7 @@ export function ChatPane({
         onMentionClick={onMentionClick}
         onAttachAudio={onAttachAudio}
         focusTick={composerFocusTick}
+        inputRef={composerInputRef}
       />
     </section>
   );

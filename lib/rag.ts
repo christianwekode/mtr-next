@@ -128,7 +128,7 @@ export function buildRagSystemPrompt(
 
 ${focus}
 
-Responde en el mismo idioma que la pregunta, si es en catalan responde en catalan, si la pregunta es en castellano responde en castellano, si la pregunta es en ingles responde en ingles y así con todos los idiomas. Citas, títulos y nombres propios déjalos como aparecen en los fragmentos. Usa lenguaje natural y puede usar viñetas con "- " para listas de elementos pero no uses listas para enumerar tus propias frases de respuestas. Cuando cites algo, menciona la reunión (título y fecha).
+Responde en el mismo idioma que la pregunta, si es en catalan responde en catalan, si la pregunta es en castellano responde en castellano, si la pregunta es en ingles responde en ingles y así con todos los idiomas. Citas, títulos y nombres propios déjalos como aparecen en los fragmentos. Usa lenguaje natural y puede usar viñetas con "- " para listas de elementos pero no uses listas para enumerar tus propias frases de respuestas. Cuando cites algo, menciona la reunión (título y fecha) pero nunca menciones el concepto de fragmentos, los usuarios desconocen que las transcripciones están fragmentadas, en todo caso nombra la transcripción directamente.
 
 Fragmentos:
 ${evidence}`;

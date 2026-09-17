@@ -3,6 +3,7 @@
 import { DefaultChatTransport } from "ai";
 import { useChat } from "@ai-sdk/react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { truncateTitle } from "@/lib/format";
 import { mentionFocus, toTitleText } from "@/lib/mentions";
 import {
@@ -21,11 +22,18 @@ import {
 import { toUiMessages } from "@/lib/message";
 import type { ChatRow, Folder, TranscriptionDetail, TranscriptionListItem } from "@/lib/types";
 
+const TRANSCRIPTION_PARAM = "id";
+
 export function useWorkspace() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const urlTranscriptionId = searchParams.get(TRANSCRIPTION_PARAM);
+
   const [folders, setFolders] = useState<Folder[]>([]);
   const [transcriptions, setTranscriptions] = useState<TranscriptionListItem[]>([]);
   const [chats, setChats] = useState<ChatRow[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(urlTranscriptionId);
   const [paneHidden, setPaneHidden] = useState(false);
   const [detail, setDetail] = useState<TranscriptionDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -33,11 +41,25 @@ export function useWorkspace() {
   const [expandedFolderIds, setExpandedFolderIds] = useState<Set<string>>(new Set());
   const [bootError, setBootError] = useState<string | null>(null);
 
-  const selectedIdRef = useRef<string | null>(null);
+  const selectedIdRef = useRef<string | null>(urlTranscriptionId);
+  const invalidUrlIdRef = useRef<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const detailAbortRef = useRef<AbortController | null>(null);
   const [transport] = useState(() => new DefaultChatTransport({ api: "/api/chat" }));
   const { messages, setMessages, sendMessage, status } = useChat({ transport });
+
+  const replaceTranscriptionParam = useCallback(
+    (id: string | null) => {
+      const params = new URLSearchParams(window.location.search);
+      const current = params.get(TRANSCRIPTION_PARAM);
+      if (id === current) return;
+      if (id) params.set(TRANSCRIPTION_PARAM, id);
+      else params.delete(TRANSCRIPTION_PARAM);
+      const query = params.toString();
+      router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    },
+    [pathname, router],
+  );
 
   const showTranscriptionPane = Boolean(selectedId) && !paneHidden;
   const paneDetail = selectedId && detail?.id === selectedId ? detail : null;
@@ -57,6 +79,17 @@ export function useWorkspace() {
     try {
       const next = await fetchTranscriptionDetail(id, controller.signal);
       if (controller.signal.aborted) return;
+      if (!next) {
+        if (selectedIdRef.current === id) {
+          invalidUrlIdRef.current = id;
+          selectedIdRef.current = null;
+          setSelectedId(null);
+          setDetail(null);
+          setPaneHidden(false);
+          replaceTranscriptionParam(null);
+        }
+        return;
+      }
       setDetail(next);
     } catch (error) {
       if (controller.signal.aborted) return;
@@ -65,7 +98,7 @@ export function useWorkspace() {
     } finally {
       if (!controller.signal.aborted) setDetailLoading(false);
     }
-  }, []);
+  }, [replaceTranscriptionParam]);
 
   useEffect(() => {
     let cancelled = false;
@@ -84,6 +117,16 @@ export function useWorkspace() {
         setFolders(next.folders);
         setTranscriptions(next.transcriptions);
         setChats(next.chats.filter((chat) => Boolean(chat.title?.trim())));
+
+        const requestedId = selectedIdRef.current;
+        if (requestedId && !next.transcriptions.some((item) => item.id === requestedId)) {
+          invalidUrlIdRef.current = requestedId;
+          selectedIdRef.current = null;
+          setSelectedId(null);
+          setDetail(null);
+          setPaneHidden(false);
+          replaceTranscriptionParam(null);
+        }
       } catch (error) {
         if (!cancelled) {
           setBootError(error instanceof Error ? error.message : "No se pudo cargar el workspace");
@@ -107,6 +150,7 @@ export function useWorkspace() {
             setSelectedId(null);
             setDetail(null);
             setPaneHidden(false);
+            replaceTranscriptionParam(null);
           }
           return;
         }
@@ -126,10 +170,15 @@ export function useWorkspace() {
     } catch {
       return undefined;
     }
-  }, [loadDetail]);
+  }, [loadDetail, replaceTranscriptionParam]);
 
   const openTranscription = useCallback(
     (id: string) => {
+      if (invalidUrlIdRef.current === id) {
+        replaceTranscriptionParam(null);
+        return;
+      }
+      invalidUrlIdRef.current = null;
       selectedIdRef.current = id;
       setSelectedId(id);
       setPaneHidden(false);
@@ -141,8 +190,9 @@ export function useWorkspace() {
         return next;
       });
       void loadDetail(id);
+      replaceTranscriptionParam(id);
     },
-    [loadDetail, transcriptions],
+    [loadDetail, replaceTranscriptionParam, transcriptions],
   );
 
   const selectTranscription = useCallback(
@@ -151,11 +201,12 @@ export function useWorkspace() {
         selectedIdRef.current = null;
         setSelectedId(null);
         setPaneHidden(false);
+        replaceTranscriptionParam(null);
         return;
       }
       openTranscription(id);
     },
-    [openTranscription, selectedId],
+    [openTranscription, replaceTranscriptionParam, selectedId],
   );
 
   const toggleFolder = useCallback((id: string) => {
@@ -187,6 +238,40 @@ export function useWorkspace() {
     [openFolder, openTranscription],
   );
 
+  useEffect(() => {
+    const id = selectedIdRef.current;
+    if (id) void loadDetail(id);
+  }, [loadDetail]);
+
+  useEffect(() => {
+    if (!selectedId) return;
+    const folderId = transcriptions.find((item) => item.id === selectedId)?.folder_id;
+    if (!folderId) return;
+    setExpandedFolderIds((current) => {
+      if (current.has(folderId)) return current;
+      const next = new Set(current);
+      next.add(folderId);
+      return next;
+    });
+  }, [selectedId, transcriptions]);
+
+  useEffect(() => {
+    if (urlTranscriptionId === selectedIdRef.current) return;
+    if (urlTranscriptionId) {
+      if (invalidUrlIdRef.current === urlTranscriptionId) {
+        replaceTranscriptionParam(null);
+        return;
+      }
+      openTranscription(urlTranscriptionId);
+      return;
+    }
+    invalidUrlIdRef.current = null;
+    selectedIdRef.current = null;
+    setSelectedId(null);
+    setDetail(null);
+    setPaneHidden(false);
+  }, [openTranscription, replaceTranscriptionParam, urlTranscriptionId]);
+
   const ensureChat = useCallback(async () => {
     if (currentChatId) return currentChatId;
 
@@ -202,7 +287,8 @@ export function useWorkspace() {
     selectedIdRef.current = null;
     setSelectedId(null);
     setPaneHidden(false);
-  }, [setMessages]);
+    replaceTranscriptionParam(null);
+  }, [replaceTranscriptionParam, setMessages]);
 
   const handleCreateFolder = useCallback(
     async (name: string) => {
@@ -260,8 +346,9 @@ export function useWorkspace() {
       setSelectedId(null);
       setDetail(null);
       setPaneHidden(false);
+      replaceTranscriptionParam(null);
     }
-  }, []);
+  }, [replaceTranscriptionParam]);
 
   const handleSelectChat = useCallback(
     async (id: string) => {

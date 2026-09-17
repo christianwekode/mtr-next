@@ -83,9 +83,12 @@ export async function fetchTranscriptionDetail(id: string, signal: AbortSignal) 
     .eq("id", id)
     .is("deleted_at", null)
     .abortSignal(signal)
-    .single();
-  if (error) throw new Error(error.message);
-  return data as TranscriptionDetail;
+    .maybeSingle();
+  if (error) {
+    if (error.code === "22P02") return null;
+    throw new Error(error.message);
+  }
+  return (data as TranscriptionDetail | null) ?? null;
 }
 
 export async function createChat(activeTranscriptionId: string | null) {

@@ -19,22 +19,31 @@ export type CreateFolderDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCreate: (name: string) => Promise<void>;
+  mode?: "create" | "edit";
+  initialName?: string;
 };
 
-export function CreateFolderDialog({ open, onOpenChange, onCreate }: CreateFolderDialogProps) {
+export function CreateFolderDialog({
+  open,
+  onOpenChange,
+  onCreate,
+  mode = "create",
+  initialName = "",
+}: CreateFolderDialogProps) {
   const nameId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const trimmed = name.trim();
+  const isEdit = mode === "edit";
 
   useEffect(() => {
     if (!open) return;
-    setName("");
+    setName(initialName);
     setBusy(false);
     setError(null);
-  }, [open]);
+  }, [initialName, open]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -51,13 +60,15 @@ export function CreateFolderDialog({ open, onOpenChange, onCreate }: CreateFolde
               })
               .catch((cause: unknown) => {
                 setBusy(false);
-                setError(cause instanceof Error ? cause.message : "No se pudo crear la carpeta");
+                setError(cause instanceof Error ? cause.message : isEdit ? "No se pudo actualizar la carpeta" : "No se pudo crear la carpeta");
               });
           }}
         >
           <DialogHeader>
-            <DialogTitle>Nueva carpeta</DialogTitle>
-            <DialogDescription>Introduce un nombre para crear la carpeta.</DialogDescription>
+            <DialogTitle>{isEdit ? "Modificar detalles" : "Nueva carpeta"}</DialogTitle>
+            <DialogDescription>
+              {isEdit ? "Cambia el nombre de la carpeta." : "Introduce un nombre para crear la carpeta."}
+            </DialogDescription>
           </DialogHeader>
           <FieldGroup className="py-4">
             <Field>
@@ -80,7 +91,7 @@ export function CreateFolderDialog({ open, onOpenChange, onCreate }: CreateFolde
               Cancelar
             </DialogClose>
             <Button type="submit" disabled={busy || !trimmed}>
-              Crear carpeta
+              {isEdit ? "Guardar" : "Crear carpeta"}
             </Button>
           </DialogFooter>
         </form>

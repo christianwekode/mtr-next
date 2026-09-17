@@ -9,10 +9,12 @@ import {
   createChat,
   createFolder,
   deleteChats,
+  deleteFolder,
   fetchChatMessages,
   fetchTranscriptionDetail,
   fetchWorkspace,
   subscribeTranscriptions,
+  updateFolderName,
 } from "@/lib/mtr";
 import { toUiMessages } from "@/lib/message";
 import type { ChatRow, Folder, TranscriptionDetail, TranscriptionListItem } from "@/lib/types";
@@ -210,6 +212,35 @@ export function useWorkspace() {
     [folders, openFolder],
   );
 
+  const handleRenameFolder = useCallback(async (id: string, name: string) => {
+    const updated = await updateFolderName(id, name);
+    setFolders((current) => current.map((folder) => (folder.id === id ? updated : folder)));
+  }, []);
+
+  const handleDuplicateFolder = useCallback(
+    async (folder: Folder) => {
+      const sortOrder = folders.reduce((max, item) => Math.max(max, item.sort_order), 0) + 1;
+      const created = await createFolder(`Copia de ${folder.name}`, sortOrder);
+      setFolders((current) => [...current, created].sort((a, b) => a.sort_order - b.sort_order));
+    },
+    [folders, openFolder],
+  );
+
+  const handleDeleteFolder = useCallback(async (id: string) => {
+    await deleteFolder(id);
+    setFolders((current) => current.filter((folder) => folder.id !== id));
+    setTranscriptions((current) =>
+      current.map((item) => (item.folder_id === id ? { ...item, folder_id: null } : item)),
+    );
+    setDetail((current) => (current?.folder_id === id ? { ...current, folder_id: null } : current));
+    setExpandedFolderIds((current) => {
+      if (!current.has(id)) return current;
+      const next = new Set(current);
+      next.delete(id);
+      return next;
+    });
+  }, []);
+
   const handleSelectChat = useCallback(
     async (id: string) => {
       try {
@@ -291,6 +322,9 @@ export function useWorkspace() {
     togglePane: () => setPaneHidden((hidden) => !hidden),
     handleNewChat,
     handleCreateFolder,
+    handleRenameFolder,
+    handleDuplicateFolder,
+    handleDeleteFolder,
     handleSelectChat,
     handleSend,
     handleAttachAudio,

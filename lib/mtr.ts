@@ -126,6 +126,29 @@ export async function createFolder(name: string, sortOrder: number) {
   throw new Error("No se pudo crear la carpeta");
 }
 
+export async function updateFolderName(id: string, name: string) {
+  const trimmed = name.trim();
+  if (!trimmed) throw new Error("El nombre de la carpeta no puede estar vacío");
+
+  const { data, error } = await getSupabaseBrowser()
+    .from("mtr_folders")
+    .update({ name: trimmed })
+    .eq("id", id)
+    .select(FOLDER_COLUMNS)
+    .single();
+  if (error || !data) throw new Error(error?.message ?? "No se pudo actualizar la carpeta");
+  return data as Folder;
+}
+
+export async function deleteFolder(id: string) {
+  const supabase = getSupabaseBrowser();
+  const { error: moveError } = await supabase.from("mtr_transcriptions").update({ folder_id: null }).eq("folder_id", id);
+  if (moveError) throw new Error(moveError.message);
+
+  const { error } = await supabase.from("mtr_folders").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+}
+
 export async function fetchChatMessages(chatId: string) {
   const { data, error } = await getSupabaseBrowser()
     .from("mtr_chat_messages")

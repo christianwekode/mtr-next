@@ -1,9 +1,9 @@
 "use client";
 
-import { ChatPane } from "@/components/chat-pane";
-import { Sidebar } from "@/components/sidebar";
+import { ChatPane } from "@/components/chat-pane/chat-pane";
+import { Sidebar } from "@/components/sidebar/sidebar";
 import { Topbar } from "@/components/topbar";
-import { TranscriptionPane } from "@/components/transcription-pane";
+import { TranscriptionPane } from "@/components/transcription-pane/transcription-pane";
 import { useWorkspace } from "@/hooks/use-workspace";
 
 export function AppShell() {

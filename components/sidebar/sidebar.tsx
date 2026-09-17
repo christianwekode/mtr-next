@@ -1,12 +1,13 @@
 "use client";
 
-import { ArrowRight01Icon, File02Icon, Folder02Icon, Loading03Icon } from "@hugeicons/core-free-icons";
+import { ArrowRight01Icon, Folder02Icon } from "@hugeicons/core-free-icons";
 import { Icon } from "@/components/icon";
-import { NowPlayingBar } from "@/components/transcription-player";
+import { TranscriptionRow } from "@/components/sidebar/transcription-row";
+import { NowPlayingBar } from "@/components/transcription-player/now-playing-bar";
 import { listTitle } from "@/lib/format";
 import type { Folder, TranscriptionListItem } from "@/lib/types";
 
-type SidebarProps = {
+export type SidebarProps = {
   folders: Folder[];
   transcriptions: TranscriptionListItem[];
   query: string;
@@ -90,36 +91,5 @@ export function Sidebar({
       </div>
       <NowPlayingBar />
     </aside>
-  );
-}
-
-function TranscriptionRow({
-  item,
-  selected,
-  onSelect,
-}: {
-  item: TranscriptionListItem;
-  selected: boolean;
-  onSelect: (id: string) => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={() => onSelect(item.id)}
-      className={`flex h-8 w-full shrink-0 items-center gap-2 overflow-hidden rounded-lg p-2 text-left ${
-        selected ? "bg-[#1414140F]" : ""
-      }`}
-    >
-      <span className="flex size-4 shrink-0 items-center justify-center">
-        {item.status === "processing" ? (
-          <Icon icon={Loading03Icon} size={16} className="animate-spin" color="#6bd668" />
-        ) : (
-          <Icon icon={File02Icon} size={16} />
-        )}
-      </span>
-      <span className="min-w-0 flex-1 truncate text-[13px]/[18px] text-[#141414]">
-        {listTitle(item)}
-      </span>
-    </button>
   );
 }

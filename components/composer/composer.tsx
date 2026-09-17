@@ -1,7 +1,8 @@
 "use client";
 
-import { Add01Icon, ArrowRight02Icon, File02Icon, Folder02Icon } from "@hugeicons/core-free-icons";
+import { Add01Icon, ArrowRight02Icon } from "@hugeicons/core-free-icons";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { MentionOptionItem, type MentionOption } from "@/components/composer/mention-option-item";
 import { Icon } from "@/components/icon";
 import { MentionBadge } from "@/components/mention-badge";
 import {
@@ -23,13 +24,7 @@ import {
 } from "@/lib/mentions";
 import type { Folder, TranscriptionListItem } from "@/lib/types";
 
-type MentionOption = {
-  kind: MentionKind;
-  id: string;
-  label: string;
-};
-
-type ComposerProps = {
+export type ComposerProps = {
   value: string;
   onChange: (value: string) => void;
   onSubmit: () => void;
@@ -323,38 +318,5 @@ export function Composer({
         </div>
       </DropdownMenu>
     </form>
-  );
-}
-
-function MentionOptionItem({
-  option,
-  index,
-  highlighted,
-  spaceKeyRef,
-  onSelect,
-}: {
-  option: MentionOption;
-  index: number;
-  highlighted: boolean;
-  spaceKeyRef: { current: boolean };
-  onSelect: (option: MentionOption) => void;
-}) {
-  return (
-    <DropdownMenuItem
-      onMouseDown={(event) => event.preventDefault()}
-      onClick={() => {
-        if (spaceKeyRef.current) return;
-        onSelect(option);
-      }}
-      className={`h-7 ${highlighted ? "bg-accent" : ""}`}
-      data-mention-option={index}
-    >
-      <Icon
-        icon={option.kind === "folder" ? Folder02Icon : File02Icon}
-        size={14}
-        className={`size-3.5 shrink-0 ${option.kind === "folder" ? "text-amber-600" : "text-sky-600"}`}
-      />
-      <span className="min-w-0 truncate">{option.label}</span>
-    </DropdownMenuItem>
   );
 }

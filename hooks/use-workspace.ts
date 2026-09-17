@@ -7,6 +7,7 @@ import { truncateTitle } from "@/lib/format";
 import { mentionFocus, toTitleText } from "@/lib/mentions";
 import {
   createChat,
+  createFolder,
   deleteChats,
   fetchChatMessages,
   fetchTranscriptionDetail,
@@ -199,6 +200,16 @@ export function useWorkspace() {
     setPaneHidden(false);
   }, [setMessages]);
 
+  const handleCreateFolder = useCallback(
+    async (name: string) => {
+      const sortOrder = folders.reduce((max, folder) => Math.max(max, folder.sort_order), 0) + 1;
+      const created = await createFolder(name, sortOrder);
+      setFolders((current) => [...current, created].sort((a, b) => a.sort_order - b.sort_order));
+      openFolder(created.id);
+    },
+    [folders, openFolder],
+  );
+
   const handleSelectChat = useCallback(
     async (id: string) => {
       try {
@@ -279,6 +290,7 @@ export function useWorkspace() {
     toggleFolder,
     togglePane: () => setPaneHidden((hidden) => !hidden),
     handleNewChat,
+    handleCreateFolder,
     handleSelectChat,
     handleSend,
     handleAttachAudio,

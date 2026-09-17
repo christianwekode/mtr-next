@@ -28,6 +28,7 @@ export function AppShell() {
     toggleFolder,
     togglePane,
     handleNewChat,
+    handleCreateFolder,
     handleSelectChat,
     handleSend,
     handleAttachAudio,
@@ -48,6 +49,7 @@ export function AppShell() {
         transcriptions={transcriptions}
         onSelectTranscription={openTranscription}
         onNewChat={handleNewChat}
+        onCreateFolder={handleCreateFolder}
       />
       <div className="flex min-h-0 min-w-0 grow">
         <Sidebar

@@ -85,6 +85,47 @@ export async function createChat(activeTranscriptionId: string | null) {
   return data as ChatRow;
 }
 
+function folderSlug(name: string): string {
+  return (
+    name
+      .normalize("NFD")
+      .replace(/\p{M}/gu, "")
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}]+/gu, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 60) || "carpeta"
+  );
+}
+
+export async function createFolder(name: string, sortOrder: number) {
+  const trimmed = name.trim();
+  if (!trimmed) throw new Error("El nombre de la carpeta no puede estar vacío");
+
+  const supabase = getSupabaseBrowser();
+  const base = folderSlug(trimmed);
+  let slug = base;
+  let attempt = 1;
+
+  while (attempt <= 8) {
+    const { data, error } = await supabase
+      .from("mtr_folders")
+      .insert({ name: trimmed, slug, sort_order: sortOrder })
+      .select(FOLDER_COLUMNS)
+      .single();
+
+    if (!error && data) return data as Folder;
+
+    const duplicate = error?.code === "23505" || /duplicate|unique/i.test(error?.message ?? "");
+    if (!duplicate || attempt === 8) {
+      throw new Error(error?.message ?? "No se pudo crear la carpeta");
+    }
+    attempt += 1;
+    slug = `${base}-${attempt}`;
+  }
+
+  throw new Error("No se pudo crear la carpeta");
+}
+
 export async function fetchChatMessages(chatId: string) {
   const { data, error } = await getSupabaseBrowser()
     .from("mtr_chat_messages")

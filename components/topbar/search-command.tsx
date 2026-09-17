@@ -1,8 +1,9 @@
 "use client";
 
-import { Add01Icon, File02Icon, Search01Icon } from "@hugeicons/core-free-icons";
-import { useEffect, useState } from "react";
+import { Add01Icon, File02Icon, FolderAddIcon, Search01Icon } from "@hugeicons/core-free-icons";
+import { useEffect, useRef, useState } from "react";
 import { Icon } from "@/components/icon";
+import { CreateFolderDialog } from "@/components/topbar/create-folder-dialog";
 import {
   Command,
   CommandDialog,
@@ -21,6 +22,7 @@ export type SearchCommandProps = {
   transcriptions: TranscriptionListItem[];
   onSelect: (id: string) => void;
   onNewChat: () => void;
+  onCreateFolder: (name: string) => Promise<void>;
 };
 
 function transcriptionFilter(_value: string, search: string, keywords: string[] = []) {
@@ -29,8 +31,10 @@ function transcriptionFilter(_value: string, search: string, keywords: string[] 
   return normalizeSearch(keywords.join("")).includes(needle) ? 1 : 0;
 }
 
-export function SearchCommand({ transcriptions, onSelect, onNewChat }: SearchCommandProps) {
+export function SearchCommand({ transcriptions, onSelect, onNewChat, onCreateFolder }: SearchCommandProps) {
   const [open, setOpen] = useState(false);
+  const [folderOpen, setFolderOpen] = useState(false);
+  const pendingFolderRef = useRef(false);
   const items = transcriptions.filter((item) => item.status !== "failed");
 
   useEffect(() => {
@@ -61,6 +65,11 @@ export function SearchCommand({ transcriptions, onSelect, onNewChat }: SearchCom
       <CommandDialog
         open={open}
         onOpenChange={setOpen}
+        onOpenChangeComplete={(next) => {
+          if (next || !pendingFolderRef.current) return;
+          pendingFolderRef.current = false;
+          setFolderOpen(true);
+        }}
         title="Buscar transcripciones"
         description="Filtra y abre una transcripción"
         className="sm:max-w-lg"
@@ -80,6 +89,17 @@ export function SearchCommand({ transcriptions, onSelect, onNewChat }: SearchCom
               >
                 <Icon icon={Add01Icon} size={16} />
                 <span>Nuevo chat</span>
+              </CommandItem>
+              <CommandItem
+                value="nueva-carpeta"
+                keywords={["Nueva carpeta"]}
+                onSelect={() => {
+                  pendingFolderRef.current = true;
+                  setOpen(false);
+                }}
+              >
+                <Icon icon={FolderAddIcon} size={16} />
+                <span>Nueva carpeta</span>
               </CommandItem>
             </CommandGroup>
             <CommandSeparator />
@@ -105,6 +125,7 @@ export function SearchCommand({ transcriptions, onSelect, onNewChat }: SearchCom
           </CommandList>
         </Command>
       </CommandDialog>
+      <CreateFolderDialog open={folderOpen} onOpenChange={setFolderOpen} onCreate={onCreateFolder} />
     </>
   );
 }

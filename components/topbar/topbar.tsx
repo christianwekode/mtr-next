@@ -9,9 +9,10 @@ export type TopbarProps = {
   transcriptions: TranscriptionListItem[];
   onSelectTranscription: (id: string) => void;
   onNewChat: () => void;
+  onCreateFolder: (name: string) => Promise<void>;
 };
 
-export function Topbar({ transcriptions, onSelectTranscription, onNewChat }: TopbarProps) {
+export function Topbar({ transcriptions, onSelectTranscription, onNewChat, onCreateFolder }: TopbarProps) {
   return (
     <header className="flex h-[52px] w-full shrink-0 items-center border-b border-[#14141414] bg-white px-4">
       <div className="flex min-w-0 grow items-center gap-3">
@@ -27,6 +28,7 @@ export function Topbar({ transcriptions, onSelectTranscription, onNewChat }: Top
         transcriptions={transcriptions}
         onSelect={onSelectTranscription}
         onNewChat={onNewChat}
+        onCreateFolder={onCreateFolder}
       />
       <div className="flex min-w-0 grow items-center justify-end">
         <div

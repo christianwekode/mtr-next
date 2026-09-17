@@ -43,7 +43,7 @@ export function DeleteFolderDialog({
           <AlertDialogTitle>Eliminar carpeta</AlertDialogTitle>
           <AlertDialogDescription>
             {transcriptionCount > 0
-              ? `Se eliminará «${folder?.name ?? ""}». Las transcripciones de esta carpeta aparecerán en la sección «Sin carpeta».`
+              ? `Se eliminará «${folder?.name ?? ""}». Las transcripciones de esta carpeta aparecerán en la sección «Sin asignar.`
               : `Se eliminará «${folder?.name ?? ""}». Esta acción no se puede deshacer.`}
           </AlertDialogDescription>
           {error ? <p className="text-sm text-destructive">{error}</p> : null}

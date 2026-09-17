@@ -37,7 +37,7 @@ export function EditTranscriptionDialog({ item, folders, onOpenChange, onSave }:
   const [error, setError] = useState<string | null>(null);
   const trimmed = name.trim();
   const folderItems = [
-    { value: UNFILED, label: "Sin carpeta" },
+    { value: UNFILED, label: "Sin asignar" },
     ...folders.map((folder) => ({ value: folder.id, label: folder.name })),
   ];
 
@@ -103,7 +103,7 @@ export function EditTranscriptionDialog({ item, folders, onOpenChange, onSave }:
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent alignItemWithTrigger={false} align="start" className="z-60 min-w-(--anchor-width)">
-                  <SelectItem value={UNFILED}>Sin carpeta</SelectItem>
+                  <SelectItem value={UNFILED}>Sin asignar</SelectItem>
                   {folders.map((folder) => (
                     <SelectItem key={folder.id} value={folder.id}>
                       {folder.name}

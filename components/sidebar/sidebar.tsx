@@ -101,7 +101,7 @@ export function Sidebar({
         ))}
         {unfiled.length > 0 ? (
           <div className="mt-1">
-            <div className="flex h-8 items-center px-2 text-xs text-[#14141499]">Sin carpeta</div>
+            <div className="flex h-8 items-center px-2 text-xs text-[#14141499]">Sin asignar</div>
             {unfiled.map((item) => (
               <TranscriptionRow
                 key={item.id}

@@ -1,34 +1,51 @@
-import { Cancel01Icon, File02Icon } from "@hugeicons/core-free-icons";
+import { Cancel01Icon, File02Icon, Folder02Icon } from "@hugeicons/core-free-icons";
 import { cn } from "@/lib/utils";
 import { Icon } from "@/components/icon";
 import { Badge } from "@/components/ui/badge";
+import type { MentionKind } from "@/lib/mentions";
+
+const KIND_STYLES: Record<MentionKind, { color: string; composerBg: string }> = {
+  transcription: {
+    color: "text-sky-600",
+    composerBg: "bg-sky-600/20 hover:bg-sky-600/25",
+  },
+  folder: {
+    color: "text-amber-600",
+    composerBg: "bg-amber-600/20 hover:bg-amber-600/25",
+  },
+};
 
 export function MentionBadge({
   id,
+  kind = "transcription",
   label,
-  onOpen,
+  onMentionClick,
   onRemove,
 }: {
   id: string;
+  kind?: MentionKind;
   label: string;
-  onOpen: (id: string) => void;
+  onMentionClick: (id: string, kind: MentionKind) => void;
   onRemove?: () => void;
 }) {
   const inComposer = Boolean(onRemove);
+  const styles = KIND_STYLES[kind];
+  const clickLabel = kind === "folder" ? `Carpeta ${label}` : `Abrir transcripción ${label}`;
 
   return (
     <Badge
       render={<span />}
       className={cn(
-        "group/mention max-w-full cursor-pointer rounded-sm text-sky-600",
+        "group/mention max-w-full cursor-pointer rounded-sm",
+        styles.color,
         inComposer
-          ? "bg-sky-600/20 pr-2 pl-1.5 hover:bg-sky-600/25"
+          ? cn("pr-2 pl-1.5", styles.composerBg)
           : "h-auto gap-0.5 bg-transparent p-0 hover:bg-transparent",
       )}
     >
       <span className="relative grid size-3 shrink-0 place-items-center">
         <Icon
-          icon={File02Icon}
+          icon={kind === "folder" ? Folder02Icon : File02Icon}
           size={12}
           className={`col-start-1 row-start-1 size-3 ${inComposer ? "group-hover/mention:invisible" : ""}`}
         />
@@ -53,9 +70,9 @@ export function MentionBadge({
         onClick={(event) => {
           event.preventDefault();
           event.stopPropagation();
-          onOpen(id);
+          onMentionClick(id, kind);
         }}
-        aria-label={`Abrir transcripción ${label}`}
+        aria-label={clickLabel}
       >
         {label}
       </button>

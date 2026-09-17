@@ -17,6 +17,7 @@ type ChatRequestBody = {
   messages: UIMessage[];
   chatId?: string | null;
   activeTranscriptionId?: string | null;
+  activeFolderId?: string | null;
 };
 
 export async function POST(request: Request) {
@@ -24,6 +25,7 @@ export async function POST(request: Request) {
   const messages = body.messages ?? [];
   const chatId = body.chatId;
   const activeTranscriptionId = body.activeTranscriptionId ?? null;
+  const activeFolderId = body.activeFolderId ?? null;
 
   if (!chatId) {
     return Response.json({ error: "chatId es obligatorio" }, { status: 400 });
@@ -44,8 +46,8 @@ export async function POST(request: Request) {
   }));
 
   const supabase = getSupabaseAdmin();
-  const [chunks, chatRes, transcriptionRes, modelMessages] = await Promise.all([
-    retrieveChunks(question, activeTranscriptionId),
+  const [chunks, chatRes, transcriptionRes, folderRes, modelMessages] = await Promise.all([
+    retrieveChunks(question, activeTranscriptionId, activeFolderId),
     supabase.from("mtr_chats").select("id, title, active_transcription_id").eq("id", chatId).maybeSingle(),
     activeTranscriptionId
       ? supabase
@@ -53,6 +55,9 @@ export async function POST(request: Request) {
           .select("short_title, session_key, recorded_at")
           .eq("id", activeTranscriptionId)
           .maybeSingle()
+      : Promise.resolve({ data: null }),
+    activeFolderId
+      ? supabase.from("mtr_folders").select("name").eq("id", activeFolderId).maybeSingle()
       : Promise.resolve({ data: null }),
     convertToModelMessages(modelInput),
   ]);
@@ -63,6 +68,7 @@ export async function POST(request: Request) {
 
   const chat = chatRes.data;
   const activeTitle = transcriptionRes.data ? listTitle(transcriptionRes.data) : null;
+  const activeFolderName = folderRes.data?.name ?? null;
 
   const chatPatch: { title?: string; active_transcription_id?: string | null } = {};
   if (!chat.title) chatPatch.title = truncateTitle(toTitleText(rawQuestion));
@@ -87,7 +93,7 @@ export async function POST(request: Request) {
 
   const result = streamText({
     model: openai("gpt-5.4-mini"),
-    system: buildRagSystemPrompt(chunks, activeTitle),
+    system: buildRagSystemPrompt(chunks, activeTitle, activeFolderName),
     messages: modelMessages,
   });
 

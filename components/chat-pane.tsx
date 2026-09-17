@@ -14,9 +14,9 @@ import { Composer } from "@/components/composer";
 import { Icon } from "@/components/icon";
 import { MentionBadge } from "@/components/mention-badge";
 import { chatDayLabel, chatDisplayTitle, formatChatAge } from "@/lib/format";
-import { parseMessageParts } from "@/lib/mentions";
+import { parseMessageParts, type MentionKind } from "@/lib/mentions";
 import { uiMessageText } from "@/lib/message";
-import type { ChatRow, TranscriptionListItem } from "@/lib/types";
+import type { ChatRow, Folder, TranscriptionListItem } from "@/lib/types";
 
 const SUGGESTIONS = [
   {
@@ -44,9 +44,10 @@ type ChatPaneProps = {
   onToggleLayout: () => void;
   onNewChat: () => void;
   onSelectChat: (id: string) => void;
+  folders: Folder[];
   transcriptions: TranscriptionListItem[];
   onSend: (text: string) => void;
-  onOpenTranscription: (id: string) => void;
+  onMentionClick: (id: string, kind: MentionKind) => void;
   onAttachAudio: () => void;
 };
 
@@ -61,9 +62,10 @@ export function ChatPane({
   onToggleLayout,
   onNewChat,
   onSelectChat,
+  folders,
   transcriptions,
   onSend,
-  onOpenTranscription,
+  onMentionClick,
   onAttachAudio,
 }: ChatPaneProps) {
   const [input, setInput] = useState("");
@@ -102,7 +104,7 @@ export function ChatPane({
           messages={messages}
           compact={variant === "sidebar"}
           streaming={status === "streaming"}
-          onOpenTranscription={onOpenTranscription}
+          onMentionClick={onMentionClick}
         />
       )}
       <Composer
@@ -112,8 +114,9 @@ export function ChatPane({
         placeholder={placeholder}
         disabled={busy}
         wide={variant === "full"}
+        folders={folders}
         transcriptions={transcriptions}
-        onOpenTranscription={onOpenTranscription}
+        onMentionClick={onMentionClick}
         onAttachAudio={onAttachAudio}
       />
     </section>
@@ -305,12 +308,12 @@ function MessageList({
   messages,
   compact,
   streaming,
-  onOpenTranscription,
+  onMentionClick,
 }: {
   messages: UIMessage[];
   compact: boolean;
   streaming: boolean;
-  onOpenTranscription: (id: string) => void;
+  onMentionClick: (id: string, kind: MentionKind) => void;
 }) {
   const bottomRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -329,7 +332,7 @@ function MessageList({
           message={message}
           compact={compact}
           streaming={streaming && index === messages.length - 1}
-          onOpenTranscription={onOpenTranscription}
+          onMentionClick={onMentionClick}
         />
       ))}
       <div ref={bottomRef} />
@@ -341,12 +344,12 @@ function ChatMessage({
   message,
   compact,
   streaming,
-  onOpenTranscription,
+  onMentionClick,
 }: {
   message: UIMessage;
   compact: boolean;
   streaming: boolean;
-  onOpenTranscription: (id: string) => void;
+  onMentionClick: (id: string, kind: MentionKind) => void;
 }) {
   const text = uiMessageText(message);
   const width = compact ? "w-full" : "w-[640px] max-w-full";
@@ -359,10 +362,11 @@ function ChatMessage({
             {parseMessageParts(text).map((part, index) =>
               part.type === "mention" ? (
                 <MentionBadge
-                  key={`${part.id}-${index}`}
+                  key={`${part.kind}-${part.id}-${index}`}
                   id={part.id}
+                  kind={part.kind}
                   label={part.label}
-                  onOpen={onOpenTranscription}
+                  onMentionClick={onMentionClick}
                 />
               ) : (
                 <span key={`text-${index}`}>{part.value}</span>

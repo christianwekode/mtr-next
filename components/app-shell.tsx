@@ -25,7 +25,7 @@ export function AppShell() {
     status,
     fileInputRef,
     selectTranscription,
-    openTranscription,
+    handleMentionClick,
     toggleFolder,
     togglePane,
     handleNewChat,
@@ -70,9 +70,10 @@ export function AppShell() {
           onToggleLayout={togglePane}
           onNewChat={handleNewChat}
           onSelectChat={handleSelectChat}
+          folders={folders}
           transcriptions={transcriptions}
           onSend={handleSend}
-          onOpenTranscription={openTranscription}
+          onMentionClick={handleMentionClick}
           onAttachAudio={handleAttachAudio}
         />
       </div>

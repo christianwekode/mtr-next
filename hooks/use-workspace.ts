@@ -4,7 +4,7 @@ import { DefaultChatTransport } from "ai";
 import { useChat } from "@ai-sdk/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { truncateTitle } from "@/lib/format";
-import { lastMentionedTranscriptionId, toTitleText } from "@/lib/mentions";
+import { mentionFocus, toTitleText } from "@/lib/mentions";
 import {
   createChat,
   deleteChats,
@@ -163,6 +163,26 @@ export function useWorkspace() {
     });
   }, []);
 
+  const openFolder = useCallback((id: string) => {
+    setExpandedFolderIds((current) => {
+      if (current.has(id)) return current;
+      const next = new Set(current);
+      next.add(id);
+      return next;
+    });
+  }, []);
+
+  const handleMentionClick = useCallback(
+    (id: string, kind: "transcription" | "folder") => {
+      if (kind === "folder") {
+        openFolder(id);
+        return;
+      }
+      openTranscription(id);
+    },
+    [openFolder, openTranscription],
+  );
+
   const ensureChat = useCallback(async () => {
     if (currentChatId) return currentChatId;
 
@@ -217,7 +237,7 @@ export function useWorkspace() {
         {
           body: {
             chatId,
-            activeTranscriptionId: lastMentionedTranscriptionId(text) ?? selectedId,
+            ...mentionFocus(text, selectedId),
           },
         },
       );
@@ -258,6 +278,7 @@ export function useWorkspace() {
     fileInputRef,
     selectTranscription,
     openTranscription,
+    handleMentionClick,
     toggleFolder,
     togglePane: () => setPaneHidden((hidden) => !hidden),
     handleNewChat,

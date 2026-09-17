@@ -1,6 +1,6 @@
 "use client";
 
-import { Add01Icon, ArrowRight02Icon } from "@hugeicons/core-free-icons";
+import { Add01Icon, ArrowRight02Icon, File02Icon, Folder02Icon } from "@hugeicons/core-free-icons";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "@/components/icon";
 import { MentionBadge } from "@/components/mention-badge";
@@ -13,8 +13,21 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { listTitle } from "@/lib/format";
-import { findActiveMention, normalizeSearch, serializeMention, serializeParts, splitComposerValue } from "@/lib/mentions";
-import type { TranscriptionListItem } from "@/lib/types";
+import {
+  findActiveMention,
+  normalizeSearch,
+  serializeMention,
+  serializeParts,
+  splitComposerValue,
+  type MentionKind,
+} from "@/lib/mentions";
+import type { Folder, TranscriptionListItem } from "@/lib/types";
+
+type MentionOption = {
+  kind: MentionKind;
+  id: string;
+  label: string;
+};
 
 type ComposerProps = {
   value: string;
@@ -23,8 +36,9 @@ type ComposerProps = {
   placeholder: string;
   disabled?: boolean;
   wide?: boolean;
+  folders: Folder[];
   transcriptions: TranscriptionListItem[];
-  onOpenTranscription: (id: string) => void;
+  onMentionClick: (id: string, kind: MentionKind) => void;
   onAttachAudio: () => void;
 };
 
@@ -35,8 +49,9 @@ export function Composer({
   placeholder,
   disabled,
   wide,
+  folders,
   transcriptions,
-  onOpenTranscription,
+  onMentionClick,
   onAttachAudio,
 }: ComposerProps) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -56,12 +71,25 @@ export function Composer({
   const mentionQuery = mention?.query ?? "";
   const mentionStart = mention?.start ?? -1;
 
-  const options = useMemo(() => {
+  const folderOptions = useMemo(() => {
+    const needle = normalizeSearch(mentionQuery);
+    return folders
+      .filter((folder) => !needle || normalizeSearch(folder.name).includes(needle))
+      .map((folder): MentionOption => ({ kind: "folder", id: folder.id, label: folder.name }));
+  }, [folders, mentionQuery]);
+
+  const transcriptionOptions = useMemo(() => {
     const needle = normalizeSearch(mentionQuery);
     return transcriptions
       .filter((item) => item.status !== "failed")
-      .filter((item) => !needle || normalizeSearch(listTitle(item)).includes(needle));
+      .filter((item) => !needle || normalizeSearch(listTitle(item)).includes(needle))
+      .map((item): MentionOption => ({ kind: "transcription", id: item.id, label: listTitle(item) }));
   }, [mentionQuery, transcriptions]);
+
+  const options = useMemo(
+    () => [...folderOptions, ...transcriptionOptions],
+    [folderOptions, transcriptionOptions],
+  );
 
   useEffect(() => {
     setHighlightIndex(0);
@@ -80,13 +108,13 @@ export function Composer({
       setMentionOpen(false);
       return;
     }
-    if (disabled || mentionDismissedRef.current) return;
+    if (mentionDismissedRef.current) return;
     setMentionOpen(true);
   }, [disabled, mentionQuery, mentionStart]);
 
-  const selectTranscription = (item: TranscriptionListItem) => {
+  const selectOption = (option: MentionOption) => {
     if (!mention) return;
-    const nextInput = `${inputValue.slice(0, mention.start)}${serializeMention(item.id, listTitle(item))} `;
+    const nextInput = `${inputValue.slice(0, mention.start)}${serializeMention(option.kind, option.id, option.label)} `;
     onChange(serializeParts([...prefixParts, { type: "text", value: nextInput }]));
     mentionDismissedRef.current = false;
     setMentionOpen(false);
@@ -103,11 +131,14 @@ export function Composer({
       onSubmit={(event) => {
         event.preventDefault();
         if (mentionOpen) {
-          if (highlighted) selectTranscription(highlighted);
+          if (highlighted) selectOption(highlighted);
           return;
         }
         if (!value.trim() || disabled) return;
         onSubmit();
+        requestAnimationFrame(() => {
+          inputRef.current?.focus();
+        });
       }}
     >
       <DropdownMenu
@@ -154,10 +185,11 @@ export function Composer({
             {prefixParts.map((part, index) =>
               part.type === "mention" ? (
                 <MentionBadge
-                  key={`${part.id}-${index}`}
+                  key={`${part.kind}-${part.id}-${index}`}
                   id={part.id}
+                  kind={part.kind}
                   label={part.label}
-                  onOpen={onOpenTranscription}
+                  onMentionClick={onMentionClick}
                   onRemove={() => {
                     onChange(serializeParts(prefixParts.filter((_, partIndex) => partIndex !== index)));
                   }}
@@ -212,16 +244,15 @@ export function Composer({
                 }
                 if (event.key === "ArrowUp") {
                   event.preventDefault();
-                  setHighlightIndex((current) => (current - 1 + options.length) % options.length);
+                  setHighlightIndex((current) => (current + options.length - 1) % options.length);
                 }
               }}
               placeholder={prefixParts.length === 0 ? placeholder : undefined}
-              disabled={Boolean(disabled)}
               autoComplete="off"
               autoCorrect="off"
               spellCheck={false}
               suppressHydrationWarning
-              className="min-w-[8ch] grow bg-transparent text-[13px]/[18px] text-[#141414] outline-none placeholder:text-[#1414145C] disabled:opacity-60"
+              className="min-w-[8ch] grow bg-transparent text-[13px]/[18px] text-[#141414] outline-none placeholder:text-[#1414145C]"
             />
           </div>
           <span className="shrink-0 text-[13px]/[18px] text-[#141414BD]">mtr</span>
@@ -241,34 +272,89 @@ export function Composer({
             finalFocus={inputRef}
             className="w-64 min-w-64 max-w-64 overflow-hidden"
           >
-            <DropdownMenuGroup>
-              <DropdownMenuLabel>Transcripciones</DropdownMenuLabel>
-              <div className="max-h-[13.25rem] overflow-y-auto">
-                {options.length === 0 ? (
-                  <DropdownMenuItem disabled className="h-7">
-                    Sin resultados
-                  </DropdownMenuItem>
-                ) : (
-                  options.map((item, index) => (
-                    <DropdownMenuItem
-                      key={item.id}
-                      onMouseDown={(event) => event.preventDefault()}
-                      onClick={() => {
-                        if (spaceKeyRef.current) return;
-                        selectTranscription(item);
-                      }}
-                      className={`h-7 ${index === highlightIndex ? "bg-accent" : ""}`}
-                      data-mention-option={index}
-                    >
-                      <span className="min-w-0 truncate">{listTitle(item)}</span>
-                    </DropdownMenuItem>
-                  ))
-                )}
-              </div>
-            </DropdownMenuGroup>
+            {options.length === 0 ? (
+              <DropdownMenuGroup>
+                <DropdownMenuItem disabled className="h-7">
+                  Sin resultados
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+            ) : (
+              <>
+                {folderOptions.length > 0 ? (
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel>Carpetas</DropdownMenuLabel>
+                    <div className="max-h-[8.5rem] overflow-y-auto">
+                      {folderOptions.map((option, index) => (
+                        <MentionOptionItem
+                          key={option.id}
+                          option={option}
+                          index={index}
+                          highlighted={index === highlightIndex}
+                          spaceKeyRef={spaceKeyRef}
+                          onSelect={selectOption}
+                        />
+                      ))}
+                    </div>
+                  </DropdownMenuGroup>
+                ) : null}
+                {transcriptionOptions.length > 0 ? (
+                  <DropdownMenuGroup>
+                    <DropdownMenuLabel>Transcripciones</DropdownMenuLabel>
+                    <div className="max-h-[13.25rem] overflow-y-auto">
+                      {transcriptionOptions.map((option, index) => {
+                        const optionIndex = folderOptions.length + index;
+                        return (
+                          <MentionOptionItem
+                            key={option.id}
+                            option={option}
+                            index={optionIndex}
+                            highlighted={optionIndex === highlightIndex}
+                            spaceKeyRef={spaceKeyRef}
+                            onSelect={selectOption}
+                          />
+                        );
+                      })}
+                    </div>
+                  </DropdownMenuGroup>
+                ) : null}
+              </>
+            )}
           </DropdownMenuContent>
         </div>
       </DropdownMenu>
     </form>
+  );
+}
+
+function MentionOptionItem({
+  option,
+  index,
+  highlighted,
+  spaceKeyRef,
+  onSelect,
+}: {
+  option: MentionOption;
+  index: number;
+  highlighted: boolean;
+  spaceKeyRef: { current: boolean };
+  onSelect: (option: MentionOption) => void;
+}) {
+  return (
+    <DropdownMenuItem
+      onMouseDown={(event) => event.preventDefault()}
+      onClick={() => {
+        if (spaceKeyRef.current) return;
+        onSelect(option);
+      }}
+      className={`h-7 ${highlighted ? "bg-accent" : ""}`}
+      data-mention-option={index}
+    >
+      <Icon
+        icon={option.kind === "folder" ? Folder02Icon : File02Icon}
+        size={14}
+        className={`size-3.5 shrink-0 ${option.kind === "folder" ? "text-amber-600" : "text-sky-600"}`}
+      />
+      <span className="min-w-0 truncate">{option.label}</span>
+    </DropdownMenuItem>
   );
 }

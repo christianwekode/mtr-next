@@ -21,17 +21,32 @@ type RankedChunk = MatchedChunk & {
   recorded_at: string | null;
 };
 
-export async function retrieveChunks(question: string, activeTranscriptionId: string | null): Promise<RankedChunk[]> {
+export async function retrieveChunks(
+  question: string,
+  activeTranscriptionId: string | null,
+  activeFolderId: string | null = null,
+): Promise<RankedChunk[]> {
+  const supabase = getSupabaseAdmin();
+  let filter: string[] | null = null;
+
+  if (activeFolderId) {
+    const { data: folderItems, error: folderError } = await supabase
+      .from("mtr_transcriptions")
+      .select("id")
+      .eq("folder_id", activeFolderId)
+      .neq("status", "failed");
+    if (folderError) throw new Error(folderError.message);
+    filter = (folderItems ?? []).map((row: { id: string }) => row.id);
+    if (filter.length === 0) return [];
+  } else if (isAboutActiveMeeting(question, activeTranscriptionId)) {
+    filter = [activeTranscriptionId];
+  }
+
   const { embedding } = await embed({
     model: openai.embedding("text-embedding-3-small"),
     value: question,
   });
 
-  const filter = isAboutActiveMeeting(question, activeTranscriptionId)
-    ? [activeTranscriptionId]
-    : null;
-
-  const supabase = getSupabaseAdmin();
   const { data, error } = await supabase.rpc("mtr_match_transcription_chunks", {
     query_embedding: embedding,
     match_count: MATCH_COUNT,
@@ -72,7 +87,11 @@ export async function retrieveChunks(question: string, activeTranscriptionId: st
   });
 }
 
-export function buildRagSystemPrompt(chunks: RankedChunk[], activeTitle: string | null): string {
+export function buildRagSystemPrompt(
+  chunks: RankedChunk[],
+  activeTitle: string | null,
+  activeFolderName: string | null = null,
+): string {
   const evidence =
     chunks.length === 0
       ? "(No hay fragmentos recuperados.)"
@@ -85,9 +104,11 @@ export function buildRagSystemPrompt(chunks: RankedChunk[], activeTitle: string 
           })
           .join("\n\n");
 
-  const focus = activeTitle
-    ? `Hay una transcripción abierta: "${activeTitle}". Si la pregunta habla de "esta" reunión, prioriza esos fragmentos. Si pregunta por otras reuniones o por todas, usa cualquier fragmento.`
-    : "No hay una transcripción abierta. Busca en todas las reuniones.";
+  const focus = activeFolderName
+    ? `Hay una carpeta mencionada: "${activeFolderName}". Prioriza las reuniones de esa carpeta.`
+    : activeTitle
+      ? `Hay una transcripción abierta: "${activeTitle}". Si la pregunta habla de "esta" reunión, prioriza esos fragmentos. Si pregunta por otras reuniones o por todas, usa cualquier fragmento.`
+      : "No hay una transcripción abierta. Busca en todas las reuniones.";
 
   return `Eres el asistente de transcripciones de reuniones (mtr). Solo puedes responder con la evidencia de los fragmentos. Si no hay evidencia suficiente, dilo con claridad. No inventes acuerdos, fechas ni nombres.
 

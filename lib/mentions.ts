@@ -1,11 +1,22 @@
-const MENTION_RE = /@\[t:([^|\]]+)\|([^\]]+)\]/g;
+const MENTION_RE = /@\[(t|f):([^|\]]+)\|([^\]]+)\]/g;
+
+export type MentionKind = "transcription" | "folder";
 
 export type MentionPart =
   | { type: "text"; value: string }
-  | { type: "mention"; id: string; label: string };
+  | { type: "mention"; kind: MentionKind; id: string; label: string };
 
-export function serializeMention(id: string, label: string): string {
-  return `@[t:${id}|${label.replace(/[\[\]]/g, "")}]`;
+const KIND_PREFIX: Record<MentionKind, "t" | "f"> = {
+  transcription: "t",
+  folder: "f",
+};
+
+function kindFromPrefix(prefix: string): MentionKind {
+  return prefix === "f" ? "folder" : "transcription";
+}
+
+export function serializeMention(kind: MentionKind, id: string, label: string): string {
+  return `@[${KIND_PREFIX[kind]}:${id}|${label.replace(/[\[\]]/g, "")}]`;
 }
 
 export function parseMessageParts(text: string): MentionPart[] {
@@ -18,7 +29,7 @@ export function parseMessageParts(text: string): MentionPart[] {
     if (match.index > lastIndex) {
       parts.push({ type: "text", value: text.slice(lastIndex, match.index) });
     }
-    parts.push({ type: "mention", id: match[1], label: match[2] });
+    parts.push({ type: "mention", kind: kindFromPrefix(match[1]), id: match[2], label: match[3] });
     lastIndex = match.index + match[0].length;
   }
 
@@ -31,7 +42,9 @@ export function parseMessageParts(text: string): MentionPart[] {
 
 export function serializeParts(parts: MentionPart[]): string {
   return parts
-    .map((part) => (part.type === "mention" ? serializeMention(part.id, part.label) : part.value))
+    .map((part) =>
+      part.type === "mention" ? serializeMention(part.kind, part.id, part.label) : part.value,
+    )
     .join("");
 }
 
@@ -46,20 +59,31 @@ export function splitComposerValue(value: string): { prefixParts: MentionPart[];
 }
 
 export function toPlainChatText(text: string): string {
-  return text.replace(new RegExp(MENTION_RE.source, "g"), "@$2");
+  return text.replace(new RegExp(MENTION_RE.source, "g"), "@$3");
 }
 
 export function toTitleText(text: string): string {
-  return text.replace(new RegExp(MENTION_RE.source, "g"), "$2");
+  return text.replace(new RegExp(MENTION_RE.source, "g"), "$3");
 }
 
-export function lastMentionedTranscriptionId(text: string): string | null {
+export function lastMention(text: string): { kind: MentionKind; id: string } | null {
   const parts = parseMessageParts(text);
   for (let index = parts.length - 1; index >= 0; index -= 1) {
     const part = parts[index];
-    if (part.type === "mention") return part.id;
+    if (part.type === "mention") return { kind: part.kind, id: part.id };
   }
   return null;
+}
+
+export function mentionFocus(text: string, selectedTranscriptionId: string | null) {
+  const mention = lastMention(text);
+  if (mention?.kind === "folder") {
+    return { activeTranscriptionId: null, activeFolderId: mention.id };
+  }
+  return {
+    activeTranscriptionId: mention?.id ?? selectedTranscriptionId,
+    activeFolderId: null,
+  };
 }
 
 export function findActiveMention(value: string, caret: number): { start: number; query: string } | null {

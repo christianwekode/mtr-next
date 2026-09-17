@@ -59,6 +59,8 @@ export function AppShell() {
           expandedFolderIds={expandedFolderIds}
           onToggleFolder={toggleFolder}
           onSelect={selectTranscription}
+          onNewChat={handleNewChat}
+          onCreateFolder={handleCreateFolder}
         />
         {showTranscriptionPane ? (
           <TranscriptionPane folderName={selectedFolderName} detail={paneDetail} loading={detailLoading} />

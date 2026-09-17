@@ -1,8 +1,10 @@
 "use client";
 
-import { ArrowRight01Icon, Folder02Icon } from "@hugeicons/core-free-icons";
+import { Add01Icon, Folder01Icon, Folder02Icon, FolderAddIcon } from "@hugeicons/core-free-icons";
+import { useState } from "react";
 import { Icon } from "@/components/icon";
 import { TranscriptionRow } from "@/components/sidebar/transcription-row";
+import { CreateFolderDialog } from "@/components/topbar/create-folder-dialog";
 import { NowPlayingBar } from "@/components/transcription-player/now-playing-bar";
 import type { Folder, TranscriptionListItem } from "@/lib/types";
 
@@ -13,6 +15,8 @@ export type SidebarProps = {
   expandedFolderIds: Set<string>;
   onToggleFolder: (id: string) => void;
   onSelect: (id: string) => void;
+  onNewChat: () => void;
+  onCreateFolder: (name: string) => Promise<void>;
 };
 
 export function Sidebar({
@@ -22,13 +26,36 @@ export function Sidebar({
   expandedFolderIds,
   onToggleFolder,
   onSelect,
+  onNewChat,
+  onCreateFolder,
 }: SidebarProps) {
+  const [folderOpen, setFolderOpen] = useState(false);
   const visible = transcriptions.filter((item) => item.status !== "failed");
   const unfiled = visible.filter((item) => item.folder_id == null);
 
   return (
     <aside className="flex h-full w-[280px] shrink-0 flex-col border-r border-[#14141414] bg-white">
       <div className="flex min-h-0 grow flex-col overflow-y-auto p-2">
+        <button
+          type="button"
+          onClick={onNewChat}
+          className="flex h-8 w-full items-center gap-2 overflow-hidden rounded-lg p-2 text-left"
+        >
+          <span className="flex size-4 shrink-0 items-center justify-center">
+            <Icon icon={Add01Icon} size={16} />
+          </span>
+          <span className="text-[13px]/[18px] text-[#141414]">Nuevo chat</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setFolderOpen(true)}
+          className="flex h-8 w-full items-center gap-2 overflow-hidden rounded-lg p-2 text-left"
+        >
+          <span className="flex size-4 shrink-0 items-center justify-center">
+            <Icon icon={FolderAddIcon} size={16} />
+          </span>
+          <span className="text-[13px]/[18px] text-[#141414]">Nueva carpeta</span>
+        </button>
         <div className="flex h-8 w-full shrink-0 items-center p-2">
           <span className="text-xs leading-4 text-[#14141499]">Transcripciones</span>
         </div>
@@ -42,11 +69,11 @@ export function Sidebar({
                 onClick={() => onToggleFolder(folder.id)}
                 className="flex h-8 w-full items-center gap-2 overflow-hidden rounded-lg p-2 text-left"
               >
-                <span className={`flex size-4 shrink-0 items-center justify-center ${expanded ? "rotate-90" : ""}`}>
+                {/* <span className={`flex size-4 shrink-0 items-center justify-center ${expanded ? "rotate-90" : ""}`}>
                   <Icon icon={ArrowRight01Icon} size={16} />
-                </span>
+                </span> */}
                 <span className="flex size-4 shrink-0 items-center justify-center">
-                  <Icon icon={Folder02Icon} size={16} />
+                  <Icon icon={expanded ? Folder02Icon : Folder01Icon} size={16} />
                 </span>
                 <span className="text-[13px]/[18px] text-[#141414]">{folder.name}</span>
               </button>
@@ -83,6 +110,7 @@ export function Sidebar({
         ) : null}
       </div>
       <NowPlayingBar />
+      <CreateFolderDialog open={folderOpen} onOpenChange={setFolderOpen} onCreate={onCreateFolder} />
     </aside>
   );
 }

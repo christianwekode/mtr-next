@@ -1,1 +1,1 @@
-export const AUDIO_BUCKET = "mtr-audio";
+export const AUDIO_BUCKET = "audio_fragments";

@@ -25,6 +25,7 @@ export type ChatPaneProps = {
   onSend: (text: string) => void;
   onMentionClick: (id: string, kind: MentionKind) => void;
   onAttachAudio: () => void;
+  composerFocusTick?: number;
 };
 
 export function ChatPane({
@@ -43,6 +44,7 @@ export function ChatPane({
   onSend,
   onMentionClick,
   onAttachAudio,
+  composerFocusTick,
 }: ChatPaneProps) {
   const [input, setInput] = useState("");
   const busy = status === "submitted" || status === "streaming";
@@ -94,6 +96,7 @@ export function ChatPane({
         transcriptions={transcriptions}
         onMentionClick={onMentionClick}
         onAttachAudio={onAttachAudio}
+        focusTick={composerFocusTick}
       />
     </section>
   );

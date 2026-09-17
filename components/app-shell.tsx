@@ -22,6 +22,8 @@ export function AppShell() {
     messages,
     status,
     fileInputRef,
+    composerFocusTick,
+    requestComposerFocus,
     selectTranscription,
     openTranscription,
     handleMentionClick,
@@ -73,7 +75,15 @@ export function AppShell() {
           onDeleteTranscription={handleDeleteTranscription}
         />
         {showTranscriptionPane ? (
-          <TranscriptionPane folderName={selectedFolderName} detail={paneDetail} loading={detailLoading} />
+          <TranscriptionPane
+            folderName={selectedFolderName}
+            detail={paneDetail}
+            loading={detailLoading}
+            onClose={() => {
+              if (selectedId) selectTranscription(selectedId);
+              requestComposerFocus();
+            }}
+          />
         ) : null}
         <ChatPane
           variant={showTranscriptionPane ? "sidebar" : "full"}
@@ -91,6 +101,7 @@ export function AppShell() {
           onSend={handleSend}
           onMentionClick={handleMentionClick}
           onAttachAudio={handleAttachAudio}
+          composerFocusTick={composerFocusTick}
         />
       </div>
       <input

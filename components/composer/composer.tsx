@@ -35,6 +35,7 @@ export type ComposerProps = {
   transcriptions: TranscriptionListItem[];
   onMentionClick: (id: string, kind: MentionKind) => void;
   onAttachAudio: () => void;
+  focusTick?: number;
 };
 
 export function Composer({
@@ -48,6 +49,7 @@ export function Composer({
   transcriptions,
   onMentionClick,
   onAttachAudio,
+  focusTick = 0,
 }: ComposerProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const barRef = useRef<HTMLDivElement>(null);
@@ -59,7 +61,7 @@ export function Composer({
 
   useEffect(() => {
     inputRef.current?.focus();
-  }, []);
+  }, [focusTick]);
 
   const { prefixParts, inputValue } = splitComposerValue(value);
   const mention = findActiveMention(inputValue, caret);

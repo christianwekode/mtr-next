@@ -40,6 +40,7 @@ export function useWorkspace() {
   const [currentChatId, setCurrentChatId] = useState<string | null>(null);
   const [expandedFolderIds, setExpandedFolderIds] = useState<Set<string>>(new Set());
   const [bootError, setBootError] = useState<string | null>(null);
+  const [composerFocusTick, setComposerFocusTick] = useState(0);
 
   const selectedIdRef = useRef<string | null>(urlTranscriptionId);
   const invalidUrlIdRef = useRef<string | null>(null);
@@ -191,6 +192,7 @@ export function useWorkspace() {
       });
       void loadDetail(id);
       replaceTranscriptionParam(id);
+      setComposerFocusTick((tick) => tick + 1);
     },
     [loadDetail, replaceTranscriptionParam, transcriptions],
   );
@@ -424,6 +426,8 @@ export function useWorkspace() {
     messages,
     status,
     fileInputRef,
+    composerFocusTick,
+    requestComposerFocus: () => setComposerFocusTick((tick) => tick + 1),
     selectTranscription,
     openTranscription,
     handleMentionClick,

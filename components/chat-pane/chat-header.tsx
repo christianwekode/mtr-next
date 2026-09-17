@@ -41,6 +41,21 @@ export function ChatHeader({
     return () => window.removeEventListener("mousedown", onPointer);
   }, [open]);
 
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.key.toLowerCase() !== "c" || !event.shiftKey) return;
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      const target = event.target;
+      if (target instanceof HTMLElement && target.closest("input, textarea, select, [contenteditable='true']")) {
+        return;
+      }
+      event.preventDefault();
+      setOpen(true);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
   const label = chatDisplayTitle(currentChat?.title ?? null);
   const grouped = groupChats(chats);
 
@@ -62,7 +77,7 @@ export function ChatHeader({
           if (!hasTranscription) return;
           onToggleLayout();
         }}
-        className={`flex items-center text-[#141414A8] ${hasTranscription ? "" : "pointer-events-none opacity-40"}`}
+        className={`flex size-6 cursor-pointer items-center justify-center rounded-md text-[#141414A8] outline-none hover:bg-[#1414140F] ${hasTranscription ? "" : "pointer-events-none opacity-40"}`}
         aria-disabled={!hasTranscription}
         aria-pressed={showTranscriptionPane}
         aria-label="Alternar panel de transcripción"

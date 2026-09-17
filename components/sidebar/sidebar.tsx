@@ -4,13 +4,11 @@ import { ArrowRight01Icon, Folder02Icon } from "@hugeicons/core-free-icons";
 import { Icon } from "@/components/icon";
 import { TranscriptionRow } from "@/components/sidebar/transcription-row";
 import { NowPlayingBar } from "@/components/transcription-player/now-playing-bar";
-import { listTitle } from "@/lib/format";
 import type { Folder, TranscriptionListItem } from "@/lib/types";
 
 export type SidebarProps = {
   folders: Folder[];
   transcriptions: TranscriptionListItem[];
-  query: string;
   selectedId: string | null;
   expandedFolderIds: Set<string>;
   onToggleFolder: (id: string) => void;
@@ -20,18 +18,13 @@ export type SidebarProps = {
 export function Sidebar({
   folders,
   transcriptions,
-  query,
   selectedId,
   expandedFolderIds,
   onToggleFolder,
   onSelect,
 }: SidebarProps) {
-  const needle = query.trim().toLowerCase();
   const visible = transcriptions.filter((item) => item.status !== "failed");
-  const matches = (item: TranscriptionListItem) =>
-    !needle || listTitle(item).toLowerCase().includes(needle);
-
-  const unfiled = visible.filter((item) => item.folder_id == null && matches(item));
+  const unfiled = visible.filter((item) => item.folder_id == null);
 
   return (
     <aside className="flex h-full w-[280px] shrink-0 flex-col border-r border-[#14141414] bg-white">
@@ -40,7 +33,7 @@ export function Sidebar({
           <span className="text-xs leading-4 text-[#14141499]">Transcripciones</span>
         </div>
         {folders.map((folder) => {
-          const items = visible.filter((item) => item.folder_id === folder.id && matches(item));
+          const items = visible.filter((item) => item.folder_id === folder.id);
           const expanded = expandedFolderIds.has(folder.id);
           return (
             <div key={folder.id}>

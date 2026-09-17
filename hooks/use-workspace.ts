@@ -17,7 +17,6 @@ import { toUiMessages } from "@/lib/message";
 import type { ChatRow, Folder, TranscriptionDetail, TranscriptionListItem } from "@/lib/types";
 
 export function useWorkspace() {
-  const [query, setQuery] = useState("");
   const [folders, setFolders] = useState<Folder[]>([]);
   const [transcriptions, setTranscriptions] = useState<TranscriptionListItem[]>([]);
   const [chats, setChats] = useState<ChatRow[]>([]);
@@ -260,8 +259,6 @@ export function useWorkspace() {
   }, []);
 
   return {
-    query,
-    setQuery,
     folders,
     transcriptions,
     chats,

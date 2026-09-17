@@ -1,14 +1,17 @@
 "use client";
 
-import { AiMagicIcon, Search01Icon } from "@hugeicons/core-free-icons";
+import { AiMagicIcon } from "@hugeicons/core-free-icons";
 import { Icon } from "@/components/icon";
+import { SearchCommand } from "@/components/topbar/search-command";
+import type { TranscriptionListItem } from "@/lib/types";
 
-type TopbarProps = {
-  query: string;
-  onQueryChange: (value: string) => void;
+export type TopbarProps = {
+  transcriptions: TranscriptionListItem[];
+  onSelectTranscription: (id: string) => void;
+  onNewChat: () => void;
 };
 
-export function Topbar({ query, onQueryChange }: TopbarProps) {
+export function Topbar({ transcriptions, onSelectTranscription, onNewChat }: TopbarProps) {
   return (
     <header className="flex h-[52px] w-full shrink-0 items-center border-b border-[#14141414] bg-white px-4">
       <div className="flex min-w-0 grow items-center gap-3">
@@ -20,15 +23,11 @@ export function Topbar({ query, onQueryChange }: TopbarProps) {
           <span className="text-[13px]/[18px] text-[#141414]">Transcripciones</span>
         </div>
       </div>
-      <label className="flex h-8 w-[360px] shrink-0 items-center gap-2 rounded-full border border-[#14141414] px-3">
-        <Icon icon={Search01Icon} size={16} color="#141414A8" />
-        <input
-          value={query}
-          onChange={(event) => onQueryChange(event.target.value)}
-          placeholder="Buscar transcripciones"
-          className="min-w-0 grow bg-transparent text-[13px]/[18px] text-[#141414] outline-none placeholder:text-[#1414145C]"
-        />
-      </label>
+      <SearchCommand
+        transcriptions={transcriptions}
+        onSelect={onSelectTranscription}
+        onNewChat={onNewChat}
+      />
       <div className="flex min-w-0 grow items-center justify-end">
         <div
           className="size-7 shrink-0 overflow-hidden rounded-full"

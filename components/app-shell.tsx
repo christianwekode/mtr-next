@@ -2,14 +2,12 @@
 
 import { ChatPane } from "@/components/chat-pane/chat-pane";
 import { Sidebar } from "@/components/sidebar/sidebar";
-import { Topbar } from "@/components/topbar";
+import { Topbar } from "@/components/topbar/topbar";
 import { TranscriptionPane } from "@/components/transcription-pane/transcription-pane";
 import { useWorkspace } from "@/hooks/use-workspace";
 
 export function AppShell() {
   const {
-    query,
-    setQuery,
     folders,
     transcriptions,
     chats,
@@ -25,6 +23,7 @@ export function AppShell() {
     status,
     fileInputRef,
     selectTranscription,
+    openTranscription,
     handleMentionClick,
     toggleFolder,
     togglePane,
@@ -45,12 +44,15 @@ export function AppShell() {
 
   return (
     <div className="flex h-dvh flex-col bg-white text-[13px] text-[#141414] antialiased">
-      <Topbar query={query} onQueryChange={setQuery} />
+      <Topbar
+        transcriptions={transcriptions}
+        onSelectTranscription={openTranscription}
+        onNewChat={handleNewChat}
+      />
       <div className="flex min-h-0 min-w-0 grow">
         <Sidebar
           folders={folders}
           transcriptions={transcriptions}
-          query={query}
           selectedId={selectedId}
           expandedFolderIds={expandedFolderIds}
           onToggleFolder={toggleFolder}

@@ -28,7 +28,7 @@ export function TranscriptionPlayButton({
       onClick={() => {
         void toggle({ id: transcriptionId, title, durationSeconds }).catch(() => {});
       }}
-      className={`flex size-7 shrink-0 items-center justify-center rounded-md ${isPlaying && !isLoading ? "animate-pulse" : ""}`}
+      className={`flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-md outline-none hover:bg-[#1414140F] disabled:pointer-events-none ${isPlaying && !isLoading ? "animate-pulse" : ""}`}
     >
       {isLoading ? (
         <Icon icon={Loading03Icon} size={20} className="animate-spin" color="#6bd668" />

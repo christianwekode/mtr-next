@@ -45,25 +45,27 @@ export function NowPlayingBar() {
           <span className="shrink-0 text-xs leading-4 text-[#141414BD] tabular-nums">
             {formatPlaybackClock(total, total)}
           </span>
-          <button
-            type="button"
-            aria-label={playing ? "Pausar" : "Reproducir"}
-            onClick={() => {
-              if (playing) pause();
-              else void play(track);
-            }}
-            className="flex size-5 shrink-0 items-center justify-center"
-          >
-            <Icon icon={playing ? PauseIcon : PlayIcon} size={18} color="#141414" />
-          </button>
-          <button
-            type="button"
-            aria-label="Detener"
-            onClick={stop}
-            className="flex size-5 shrink-0 items-center justify-center"
-          >
-            <Icon icon={StopIcon} size={18} color="#141414" />
-          </button>
+          <div className="flex shrink-0 items-center">
+            <button
+              type="button"
+              aria-label={playing ? "Pausar" : "Reproducir"}
+              onClick={() => {
+                if (playing) pause();
+                else void play(track);
+              }}
+              className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md outline-none hover:bg-[#1414140F]"
+            >
+              <Icon icon={playing ? PauseIcon : PlayIcon} size={18} color="#141414" />
+            </button>
+            <button
+              type="button"
+              aria-label="Detener"
+              onClick={stop}
+              className="flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-md outline-none hover:bg-[#1414140F]"
+            >
+              <Icon icon={StopIcon} size={18} color="#141414" />
+            </button>
+          </div>
         </div>
       </div>
     </div>

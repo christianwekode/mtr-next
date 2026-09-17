@@ -10,11 +10,13 @@ import {
   createFolder,
   deleteChats,
   deleteFolder,
+  deleteTranscription,
   fetchChatMessages,
   fetchTranscriptionDetail,
   fetchWorkspace,
   subscribeTranscriptions,
   updateFolderName,
+  updateTranscription,
 } from "@/lib/mtr";
 import { toUiMessages } from "@/lib/message";
 import type { ChatRow, Folder, TranscriptionDetail, TranscriptionListItem } from "@/lib/types";
@@ -207,9 +209,8 @@ export function useWorkspace() {
       const sortOrder = folders.reduce((max, folder) => Math.max(max, folder.sort_order), 0) + 1;
       const created = await createFolder(name, sortOrder);
       setFolders((current) => [...current, created].sort((a, b) => a.sort_order - b.sort_order));
-      openFolder(created.id);
     },
-    [folders, openFolder],
+    [folders],
   );
 
   const handleRenameFolder = useCallback(async (id: string, name: string) => {
@@ -223,7 +224,7 @@ export function useWorkspace() {
       const created = await createFolder(`Copia de ${folder.name}`, sortOrder);
       setFolders((current) => [...current, created].sort((a, b) => a.sort_order - b.sort_order));
     },
-    [folders, openFolder],
+    [folders],
   );
 
   const handleDeleteFolder = useCallback(async (id: string) => {
@@ -239,6 +240,27 @@ export function useWorkspace() {
       next.delete(id);
       return next;
     });
+  }, []);
+
+  const handleUpdateTranscription = useCallback(
+    async (id: string, patch: { short_title: string; folder_id: string | null }) => {
+      const updated = await updateTranscription(id, patch);
+      setTranscriptions((current) => current.map((item) => (item.id === id ? { ...item, ...updated } : item)));
+      setDetail((current) => (current?.id === id ? { ...current, ...updated } : current));
+      if (updated.folder_id) openFolder(updated.folder_id);
+    },
+    [openFolder],
+  );
+
+  const handleDeleteTranscription = useCallback(async (id: string) => {
+    await deleteTranscription(id);
+    setTranscriptions((current) => current.filter((item) => item.id !== id));
+    if (selectedIdRef.current === id) {
+      selectedIdRef.current = null;
+      setSelectedId(null);
+      setDetail(null);
+      setPaneHidden(false);
+    }
   }, []);
 
   const handleSelectChat = useCallback(
@@ -325,6 +347,8 @@ export function useWorkspace() {
     handleRenameFolder,
     handleDuplicateFolder,
     handleDeleteFolder,
+    handleUpdateTranscription,
+    handleDeleteTranscription,
     handleSelectChat,
     handleSend,
     handleAttachAudio,

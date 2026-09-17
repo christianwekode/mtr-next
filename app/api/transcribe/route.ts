@@ -22,6 +22,7 @@ export async function POST(request: Request) {
   const { data: folder } = await supabase
     .from("mtr_folders")
     .select("id")
+    .is("deleted_at", null)
     .order("sort_order", { ascending: true })
     .limit(1)
     .maybeSingle();

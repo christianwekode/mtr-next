@@ -4,6 +4,8 @@ import { Add01Icon, FolderAddIcon } from "@hugeicons/core-free-icons";
 import { useState } from "react";
 import { Icon } from "@/components/icon";
 import { DeleteFolderDialog } from "@/components/sidebar/delete-folder-dialog";
+import { DeleteTranscriptionDialog } from "@/components/sidebar/delete-transcription-dialog";
+import { EditTranscriptionDialog } from "@/components/sidebar/edit-transcription-dialog";
 import { FolderRow } from "@/components/sidebar/folder-row";
 import { TranscriptionRow } from "@/components/sidebar/transcription-row";
 import { CreateFolderDialog } from "@/components/topbar/create-folder-dialog";
@@ -22,6 +24,8 @@ export type SidebarProps = {
   onRenameFolder: (id: string, name: string) => Promise<void>;
   onDuplicateFolder: (folder: Folder) => Promise<void>;
   onDeleteFolder: (id: string) => Promise<void>;
+  onUpdateTranscription: (id: string, patch: { short_title: string; folder_id: string | null }) => Promise<void>;
+  onDeleteTranscription: (id: string) => Promise<void>;
 };
 
 export function Sidebar({
@@ -36,12 +40,17 @@ export function Sidebar({
   onRenameFolder,
   onDuplicateFolder,
   onDeleteFolder,
+  onUpdateTranscription,
+  onDeleteTranscription,
 }: SidebarProps) {
   const [folderOpen, setFolderOpen] = useState(false);
   const [editingFolder, setEditingFolder] = useState<Folder | null>(null);
   const [deletingFolder, setDeletingFolder] = useState<Folder | null>(null);
+  const [editingTranscription, setEditingTranscription] = useState<TranscriptionListItem | null>(null);
+  const [deletingTranscription, setDeletingTranscription] = useState<TranscriptionListItem | null>(null);
   const visible = transcriptions.filter((item) => item.status !== "failed");
   const unfiled = visible.filter((item) => item.folder_id == null);
+  const sortedFolders = [...folders].sort((a, b) => a.name.localeCompare(b.name, "es", { sensitivity: "base" }));
   const deletingCount = deletingFolder
     ? visible.filter((item) => item.folder_id === deletingFolder.id).length
     : 0;
@@ -52,7 +61,7 @@ export function Sidebar({
         <button
           type="button"
           onClick={onNewChat}
-          className="flex h-8 w-full items-center gap-2 overflow-hidden rounded-lg p-2 text-left"
+          className="flex h-8 w-full items-center gap-2 overflow-hidden rounded-lg p-2 text-left hover:bg-[#1414140A]"
         >
           <span className="flex size-4 shrink-0 items-center justify-center">
             <Icon icon={Add01Icon} size={16} />
@@ -62,7 +71,7 @@ export function Sidebar({
         <button
           type="button"
           onClick={() => setFolderOpen(true)}
-          className="flex h-8 w-full items-center gap-2 overflow-hidden rounded-lg p-2 text-left"
+          className="flex h-8 w-full items-center gap-2 overflow-hidden rounded-lg p-2 text-left hover:bg-[#1414140A]"
         >
           <span className="flex size-4 shrink-0 items-center justify-center">
             <Icon icon={FolderAddIcon} size={16} />
@@ -72,7 +81,7 @@ export function Sidebar({
         <div className="flex h-8 w-full shrink-0 items-center p-2">
           <span className="text-xs leading-4 text-[#14141499]">Conocimiento</span>
         </div>
-        {folders.map((folder) => (
+        {sortedFolders.map((folder) => (
           <FolderRow
             key={folder.id}
             folder={folder}
@@ -86,6 +95,8 @@ export function Sidebar({
               void onDuplicateFolder(folder);
             }}
             onDelete={() => setDeletingFolder(folder)}
+            onEditTranscription={setEditingTranscription}
+            onDeleteTranscription={setDeletingTranscription}
           />
         ))}
         {unfiled.length > 0 ? (
@@ -97,6 +108,8 @@ export function Sidebar({
                 item={item}
                 selected={item.id === selectedId}
                 onSelect={onSelect}
+                onEdit={() => setEditingTranscription(item)}
+                onDelete={() => setDeletingTranscription(item)}
               />
             ))}
           </div>
@@ -123,6 +136,21 @@ export function Sidebar({
           if (!open) setDeletingFolder(null);
         }}
         onConfirm={onDeleteFolder}
+      />
+      <EditTranscriptionDialog
+        item={editingTranscription}
+        folders={sortedFolders}
+        onOpenChange={(open) => {
+          if (!open) setEditingTranscription(null);
+        }}
+        onSave={onUpdateTranscription}
+      />
+      <DeleteTranscriptionDialog
+        item={deletingTranscription}
+        onOpenChange={(open) => {
+          if (!open) setDeletingTranscription(null);
+        }}
+        onConfirm={onDeleteTranscription}
       />
     </aside>
   );

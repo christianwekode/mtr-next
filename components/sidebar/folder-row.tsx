@@ -5,6 +5,11 @@ import { useState } from "react";
 import { Icon } from "@/components/icon";
 import { TranscriptionRow } from "@/components/sidebar/transcription-row";
 import {
+  itemMenuContentClassName,
+  itemMenuItemClassName,
+  itemMenuTriggerClassName,
+} from "@/components/sidebar/item-menu";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -23,6 +28,8 @@ export type FolderRowProps = {
   onEdit: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
+  onEditTranscription: (item: TranscriptionListItem) => void;
+  onDeleteTranscription: (item: TranscriptionListItem) => void;
 };
 
 export function FolderRow({
@@ -35,6 +42,8 @@ export function FolderRow({
   onEdit,
   onDuplicate,
   onDelete,
+  onEditTranscription,
+  onDeleteTranscription,
 }: FolderRowProps) {
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -54,34 +63,23 @@ export function FolderRow({
         <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
           <DropdownMenuTrigger
             aria-label={`Acciones de ${folder.name}`}
-            className={`mr-1 flex size-6 shrink-0 items-center justify-center rounded-md text-[#141414] outline-none hover:bg-[#1414140F] focus-visible:ring-2 focus-visible:ring-[#14141414] ${
+            className={`${itemMenuTriggerClassName} ${
               menuOpen ? "opacity-100" : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
             }`}
           >
             <Icon icon={EllipsisIcon} size={16} />
           </DropdownMenuTrigger>
-          <DropdownMenuContent
-            align="start"
-            side="right"
-            sideOffset={4}
-            className="w-auto min-w-[200px] rounded-[14px] bg-[#FCFCFC] p-0 py-1.5 text-[#141414] shadow-[0px_8px_16px_#1414141F] ring-1 ring-[#14141414]"
-          >
-            <DropdownMenuItem
-              className="min-h-7.5 rounded-none px-3.5 py-0 text-[13px]/[18px] tracking-[-0.08px]"
-              onClick={onEdit}
-            >
+          <DropdownMenuContent align="start" side="right" sideOffset={4} className={itemMenuContentClassName}>
+            <DropdownMenuItem className={itemMenuItemClassName} onClick={onEdit}>
               Modificar detalles
             </DropdownMenuItem>
-            <DropdownMenuItem
-              className="min-h-7.5 rounded-none px-3.5 py-0 text-[13px]/[18px] tracking-[-0.08px]"
-              onClick={onDuplicate}
-            >
+            <DropdownMenuItem className={itemMenuItemClassName} onClick={onDuplicate}>
               Duplicar
             </DropdownMenuItem>
             <DropdownMenuSeparator className="mx-3.5 my-1.5 bg-[#14141414]" />
             <DropdownMenuItem
               variant="destructive"
-              className="min-h-7.5 rounded-none px-3.5 py-0 text-[13px]/[18px] tracking-[-0.08px] text-[#BE1744] focus:text-[#BE1744]"
+              className={`${itemMenuItemClassName} text-[#BE1744] focus:text-[#BE1744]`}
               onClick={onDelete}
             >
               Eliminar
@@ -100,6 +98,8 @@ export function FolderRow({
               item={item}
               selected={item.id === selectedId}
               onSelect={onSelect}
+              onEdit={() => onEditTranscription(item)}
+              onDelete={() => onDeleteTranscription(item)}
             />
           ))}
         </div>

@@ -32,6 +32,8 @@ export function AppShell() {
     handleRenameFolder,
     handleDuplicateFolder,
     handleDeleteFolder,
+    handleUpdateTranscription,
+    handleDeleteTranscription,
     handleSelectChat,
     handleSend,
     handleAttachAudio,
@@ -67,6 +69,8 @@ export function AppShell() {
           onRenameFolder={handleRenameFolder}
           onDuplicateFolder={handleDuplicateFolder}
           onDeleteFolder={handleDeleteFolder}
+          onUpdateTranscription={handleUpdateTranscription}
+          onDeleteTranscription={handleDeleteTranscription}
         />
         {showTranscriptionPane ? (
           <TranscriptionPane folderName={selectedFolderName} detail={paneDetail} loading={detailLoading} />

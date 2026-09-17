@@ -34,7 +34,8 @@ export async function retrieveChunks(
       .from("mtr_transcriptions")
       .select("id")
       .eq("folder_id", activeFolderId)
-      .neq("status", "failed");
+      .neq("status", "failed")
+      .is("deleted_at", null);
     if (folderError) throw new Error(folderError.message);
     filter = (folderItems ?? []).map((row: { id: string }) => row.id);
     if (filter.length === 0) return [];
@@ -60,11 +61,12 @@ export async function retrieveChunks(
   const matches = (data ?? []) as MatchedChunk[];
   if (matches.length === 0) return [];
 
-  const ids = [...new Set(matches.map((match) => match.transcription_id))];
+  const uniqueIds = [...new Set(matches.map((match) => match.transcription_id))];
   const { data: transcriptions, error: txError } = await supabase
     .from("mtr_transcriptions")
     .select("id, short_title, recorded_at")
-    .in("id", ids);
+    .in("id", uniqueIds)
+    .is("deleted_at", null);
 
   if (txError) {
     throw new Error(txError.message);
@@ -77,13 +79,25 @@ export async function retrieveChunks(
     ]),
   );
 
-  return matches.map((match) => {
+  const liveChunkIds = matches.map((match) => match.id);
+  const { data: liveChunks, error: chunkError } = await supabase
+    .from("mtr_transcription_chunks")
+    .select("id")
+    .in("id", liveChunkIds)
+    .is("deleted_at", null);
+  if (chunkError) throw new Error(chunkError.message);
+  const liveChunkIdSet = new Set((liveChunks ?? []).map((row: { id: string }) => row.id));
+
+  return matches.flatMap((match) => {
     const info = meta.get(match.transcription_id);
-    return {
-      ...match,
-      short_title: info?.short_title ?? null,
-      recorded_at: info?.recorded_at ?? null,
-    };
+    if (!info || !liveChunkIdSet.has(match.id)) return [];
+    return [
+      {
+        ...match,
+        short_title: info.short_title ?? null,
+        recorded_at: info.recorded_at ?? null,
+      },
+    ];
   });
 }
 

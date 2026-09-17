@@ -6,6 +6,7 @@ import {
   TRANSCRIPTION_DETAIL_COLUMNS,
   TRANSCRIPTION_LIST_COLUMNS,
 } from "@/lib/supabase/client";
+import { deletedAtNow } from "@/lib/supabase/soft-delete";
 import type {
   ChatMessageRow,
   ChatRow,
@@ -41,9 +42,13 @@ export function parseTranscriptionListItem(row: unknown): TranscriptionListItem 
 export async function fetchWorkspace() {
   const supabase = getSupabaseBrowser();
   const [folderRes, listRes, chatRes] = await Promise.all([
-    supabase.from("mtr_folders").select(FOLDER_COLUMNS).order("sort_order", { ascending: true }),
-    supabase.from("mtr_transcriptions").select(TRANSCRIPTION_LIST_COLUMNS).order("recorded_at", { ascending: false }),
-    supabase.from("mtr_chats").select(CHAT_LIST_COLUMNS).order("updated_at", { ascending: false }),
+    supabase.from("mtr_folders").select(FOLDER_COLUMNS).is("deleted_at", null).order("sort_order", { ascending: true }),
+    supabase
+      .from("mtr_transcriptions")
+      .select(TRANSCRIPTION_LIST_COLUMNS)
+      .is("deleted_at", null)
+      .order("recorded_at", { ascending: false }),
+    supabase.from("mtr_chats").select(CHAT_LIST_COLUMNS).is("deleted_at", null).order("updated_at", { ascending: false }),
   ]);
 
   if (folderRes.error) throw new Error(folderRes.error.message);
@@ -59,7 +64,16 @@ export async function fetchWorkspace() {
 
 export async function deleteChats(ids: string[]) {
   if (ids.length === 0) return;
-  await getSupabaseBrowser().from("mtr_chats").delete().in("id", ids);
+  const supabase = getSupabaseBrowser();
+  const deletedAt = deletedAtNow();
+  const { error: messageError } = await supabase
+    .from("mtr_chat_messages")
+    .update({ deleted_at: deletedAt })
+    .in("chat_id", ids)
+    .is("deleted_at", null);
+  if (messageError) throw new Error(messageError.message);
+  const { error } = await supabase.from("mtr_chats").update({ deleted_at: deletedAt }).in("id", ids).is("deleted_at", null);
+  if (error) throw new Error(error.message);
 }
 
 export async function fetchTranscriptionDetail(id: string, signal: AbortSignal) {
@@ -67,6 +81,7 @@ export async function fetchTranscriptionDetail(id: string, signal: AbortSignal) 
     .from("mtr_transcriptions")
     .select(TRANSCRIPTION_DETAIL_COLUMNS)
     .eq("id", id)
+    .is("deleted_at", null)
     .abortSignal(signal)
     .single();
   if (error) throw new Error(error.message);
@@ -134,6 +149,7 @@ export async function updateFolderName(id: string, name: string) {
     .from("mtr_folders")
     .update({ name: trimmed })
     .eq("id", id)
+    .is("deleted_at", null)
     .select(FOLDER_COLUMNS)
     .single();
   if (error || !data) throw new Error(error?.message ?? "No se pudo actualizar la carpeta");
@@ -142,10 +158,55 @@ export async function updateFolderName(id: string, name: string) {
 
 export async function deleteFolder(id: string) {
   const supabase = getSupabaseBrowser();
-  const { error: moveError } = await supabase.from("mtr_transcriptions").update({ folder_id: null }).eq("folder_id", id);
+  const deletedAt = deletedAtNow();
+  const { error: moveError } = await supabase
+    .from("mtr_transcriptions")
+    .update({ folder_id: null })
+    .eq("folder_id", id)
+    .is("deleted_at", null);
   if (moveError) throw new Error(moveError.message);
 
-  const { error } = await supabase.from("mtr_folders").delete().eq("id", id);
+  const { error } = await supabase.from("mtr_folders").update({ deleted_at: deletedAt }).eq("id", id).is("deleted_at", null);
+  if (error) throw new Error(error.message);
+}
+
+export async function updateTranscription(id: string, patch: { short_title: string; folder_id: string | null }) {
+  const trimmed = patch.short_title.trim();
+  if (!trimmed) throw new Error("El nombre de la transcripción no puede estar vacío");
+
+  const { data, error } = await getSupabaseBrowser()
+    .from("mtr_transcriptions")
+    .update({ short_title: trimmed, folder_id: patch.folder_id })
+    .eq("id", id)
+    .is("deleted_at", null)
+    .select(TRANSCRIPTION_LIST_COLUMNS)
+    .single();
+  if (error || !data) throw new Error(error?.message ?? "No se pudo actualizar la transcripción");
+  return data as TranscriptionListItem;
+}
+
+export async function deleteTranscription(id: string) {
+  const supabase = getSupabaseBrowser();
+  const deletedAt = deletedAtNow();
+  const { error: chunkError } = await supabase
+    .from("mtr_transcription_chunks")
+    .update({ deleted_at: deletedAt })
+    .eq("transcription_id", id)
+    .is("deleted_at", null);
+  if (chunkError) throw new Error(chunkError.message);
+
+  const { error: chatError } = await supabase
+    .from("mtr_chats")
+    .update({ active_transcription_id: null })
+    .eq("active_transcription_id", id)
+    .is("deleted_at", null);
+  if (chatError) throw new Error(chatError.message);
+
+  const { error } = await supabase
+    .from("mtr_transcriptions")
+    .update({ deleted_at: deletedAt })
+    .eq("id", id)
+    .is("deleted_at", null);
   if (error) throw new Error(error.message);
 }
 
@@ -154,6 +215,7 @@ export async function fetchChatMessages(chatId: string) {
     .from("mtr_chat_messages")
     .select(CHAT_MESSAGE_COLUMNS)
     .eq("chat_id", chatId)
+    .is("deleted_at", null)
     .order("created_at", { ascending: true });
   if (error) throw new Error(error.message);
   return (data ?? []) as ChatMessageRow[];
@@ -171,7 +233,13 @@ export function subscribeTranscriptions(
         if (id) onEvent({ type: "DELETE", id });
         return;
       }
-      const item = parseTranscriptionListItem(payload.new);
+      const row = payload.new as Record<string, unknown>;
+      const id = asString(row.id);
+      if (asString(row.deleted_at)) {
+        if (id) onEvent({ type: "DELETE", id });
+        return;
+      }
+      const item = parseTranscriptionListItem(row);
       if (item) onEvent({ type: "UPSERT", item });
     })
     .subscribe();

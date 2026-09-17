@@ -3,6 +3,7 @@ import { embedMany, transcribe } from "ai";
 import { chunkTranscription } from "@/lib/chunk";
 import { AUDIO_BUCKET } from "@/lib/storage";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { deletedAtNow } from "@/lib/supabase/soft-delete";
 
 export async function processTranscription(transcriptionId: string): Promise<void> {
   const supabase = getSupabaseAdmin();
@@ -11,6 +12,7 @@ export async function processTranscription(transcriptionId: string): Promise<voi
     .from("mtr_transcriptions")
     .select("id, audio_storage_path")
     .eq("id", transcriptionId)
+    .is("deleted_at", null)
     .single();
 
   if (loadError || !row) {
@@ -39,7 +41,11 @@ export async function processTranscription(transcriptionId: string): Promise<voi
     const body = transcript.text.trim();
     const chunks = chunkTranscription(body);
 
-    await supabase.from("mtr_transcription_chunks").delete().eq("transcription_id", transcriptionId);
+    await supabase
+      .from("mtr_transcription_chunks")
+      .update({ deleted_at: deletedAtNow() })
+      .eq("transcription_id", transcriptionId)
+      .is("deleted_at", null);
 
     if (chunks.length > 0) {
       const { embeddings } = await embedMany({
@@ -74,7 +80,8 @@ export async function processTranscription(transcriptionId: string): Promise<voi
         status: "ready",
         error_message: null,
       })
-      .eq("id", transcriptionId);
+      .eq("id", transcriptionId)
+      .is("deleted_at", null);
 
     if (updateError) {
       throw new Error(updateError.message);
@@ -87,7 +94,8 @@ export async function processTranscription(transcriptionId: string): Promise<voi
         status: "failed",
         error_message: message,
       })
-      .eq("id", transcriptionId);
+      .eq("id", transcriptionId)
+      .is("deleted_at", null);
     throw error;
   }
 }

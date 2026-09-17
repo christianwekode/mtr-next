@@ -48,16 +48,17 @@ export async function POST(request: Request) {
   const supabase = getSupabaseAdmin();
   const [chunks, chatRes, transcriptionRes, folderRes, modelMessages] = await Promise.all([
     retrieveChunks(question, activeTranscriptionId, activeFolderId),
-    supabase.from("mtr_chats").select("id, title, active_transcription_id").eq("id", chatId).maybeSingle(),
+    supabase.from("mtr_chats").select("id, title, active_transcription_id").eq("id", chatId).is("deleted_at", null).maybeSingle(),
     activeTranscriptionId
       ? supabase
           .from("mtr_transcriptions")
           .select("short_title, session_key, recorded_at")
           .eq("id", activeTranscriptionId)
+          .is("deleted_at", null)
           .maybeSingle()
       : Promise.resolve({ data: null }),
     activeFolderId
-      ? supabase.from("mtr_folders").select("name").eq("id", activeFolderId).maybeSingle()
+      ? supabase.from("mtr_folders").select("name").eq("id", activeFolderId).is("deleted_at", null).maybeSingle()
       : Promise.resolve({ data: null }),
     convertToModelMessages(modelInput),
   ]);
@@ -83,7 +84,7 @@ export async function POST(request: Request) {
       content: rawQuestion,
     }),
     Object.keys(chatPatch).length > 0
-      ? supabase.from("mtr_chats").update(chatPatch).eq("id", chatId)
+      ? supabase.from("mtr_chats").update(chatPatch).eq("id", chatId).is("deleted_at", null)
       : Promise.resolve({ error: null }),
   ]);
 
@@ -125,7 +126,7 @@ export async function POST(request: Request) {
               })),
             )
           : Promise.resolve(),
-        supabase.from("mtr_chats").update({ updated_at: new Date().toISOString() }).eq("id", chatId),
+        supabase.from("mtr_chats").update({ updated_at: new Date().toISOString() }).eq("id", chatId).is("deleted_at", null),
       ]);
     },
   });

@@ -1,6 +1,7 @@
 "use client";
 
-import { EllipsisIcon, File02Icon, Loading03Icon } from "@hugeicons/core-free-icons";
+import { EllipsisIcon, File02Icon } from "@hugeicons/core-free-icons";
+import { Atom } from "loading-dev";
 import { useState } from "react";
 import { Icon } from "@/components/icon";
 import {
@@ -42,7 +43,7 @@ export function TranscriptionRow({ item, selected, onSelect, onEdit, onDelete }:
       >
         <span className="flex size-4 shrink-0 items-center justify-center">
           {item.status === "processing" ? (
-            <Icon icon={Loading03Icon} size={16} className="animate-spin" color="#6bd668" />
+            <Atom size={14} duration={1500} color="#48bcf7" />
           ) : (
             <Icon icon={File02Icon} size={16} />
           )}

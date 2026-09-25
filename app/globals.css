@@ -69,7 +69,7 @@ body {
   border-radius: 999px;
   background: linear-gradient(
     to right,
-    #e11d48 var(--audio-progress),
+    #48bcf7 var(--audio-progress),
     #14141414 var(--audio-progress)
   );
 }
@@ -81,7 +81,7 @@ body {
   margin-top: -4px;
   border-radius: 999px;
   background: #ffffff;
-  box-shadow: 0 0 0 2px #e11d48;
+  box-shadow: 0 0 0 2px #48bcf7;
 }
 
 .audio-scrubber::-moz-range-track {
@@ -93,7 +93,7 @@ body {
 .audio-scrubber::-moz-range-progress {
   height: 4px;
   border-radius: 999px;
-  background: #e11d48;
+  background: #48bcf7;
 }
 
 .audio-scrubber::-moz-range-thumb {
@@ -102,7 +102,7 @@ body {
   border: 0;
   border-radius: 999px;
   background: #ffffff;
-  box-shadow: 0 0 0 2px #e11d48;
+  box-shadow: 0 0 0 2px #48bcf7;
 }
 
 :root {

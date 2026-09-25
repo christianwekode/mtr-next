@@ -1,6 +1,7 @@
 "use client";
 
-import { AudioWave02Icon, Loading03Icon } from "@hugeicons/core-free-icons";
+import { AudioLinesIcon, Loading03Icon } from "@hugeicons/core-free-icons";
+import { Wave } from "loading-dev";
 import { Icon } from "@/components/icon";
 import { usePlayback } from "@/components/playback-context";
 
@@ -28,12 +29,14 @@ export function TranscriptionPlayButton({
       onClick={() => {
         void toggle({ id: transcriptionId, title, durationSeconds }).catch(() => {});
       }}
-      className={`flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-md outline-none hover:bg-[#1414140F] disabled:pointer-events-none ${isPlaying && !isLoading ? "animate-pulse" : ""}`}
+      className="flex size-7 shrink-0 cursor-pointer items-center justify-center rounded-md outline-none hover:bg-[#1414140F] disabled:pointer-events-none"
     >
       {isLoading ? (
         <Icon icon={Loading03Icon} size={20} className="animate-spin" color="#6bd668" />
+      ) : isPlaying ? (
+        <Wave size={14} origin="center" color="#48bcf7" playState="running" duration={600} />
       ) : (
-        <Icon icon={AudioWave02Icon} size={20} color={isPlaying ? "#E11D48" : "#141414"} />
+        <Icon icon={AudioLinesIcon} size={20} color="#141414" />
       )}
     </button>
   );

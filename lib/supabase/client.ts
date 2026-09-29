@@ -23,7 +23,7 @@ export const TRANSCRIPTION_LIST_COLUMNS =
   "id, short_title, status, folder_id, recorded_at, session_key" as const;
 
 export const TRANSCRIPTION_DETAIL_COLUMNS =
-  "id, short_title, status, folder_id, recorded_at, session_key, body, language, duration_seconds, fragment_count, audio_storage_path, error_message" as const;
+  "id, short_title, status, folder_id, recorded_at, session_key, body, language, duration_seconds, fragment_count, audio_storage_path, error_message, elevenlabs_transcript" as const;
 
 export const CHAT_LIST_COLUMNS = "id, title, active_transcription_id, created_at, updated_at" as const;
 

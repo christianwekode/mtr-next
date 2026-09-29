@@ -15,6 +15,7 @@ type PlaybackContextValue = {
   currentTime: number;
   duration: number;
   play: (track: PlaybackTrack) => Promise<void>;
+  playFrom: (track: PlaybackTrack, seconds: number) => Promise<void>;
   pause: () => void;
   stop: () => void;
   seek: (seconds: number) => void;
@@ -30,11 +31,49 @@ function clearAudio(audio: HTMLAudioElement | null) {
   audio.currentTime = 0;
 }
 
+function waitForMetadata(audio: HTMLAudioElement) {
+  if (audio.readyState >= 1) return Promise.resolve();
+  return new Promise<void>((resolve, reject) => {
+    const cleanup = () => {
+      audio.removeEventListener("loadedmetadata", onReady);
+      audio.removeEventListener("error", onError);
+    };
+    const onReady = () => {
+      cleanup();
+      resolve();
+    };
+    const onError = () => {
+      cleanup();
+      reject(new Error("No se pudo cargar la grabación"));
+    };
+    audio.addEventListener("loadedmetadata", onReady);
+    audio.addEventListener("error", onError);
+  });
+}
+
+function seekAudio(audio: HTMLAudioElement, seconds: number) {
+  if (Math.abs(audio.currentTime - seconds) < 0.05) return Promise.resolve();
+  return new Promise<void>((resolve) => {
+    const onSeeked = () => {
+      audio.removeEventListener("seeked", onSeeked);
+      resolve();
+    };
+    audio.addEventListener("seeked", onSeeked);
+    try {
+      audio.currentTime = seconds;
+    } catch {
+      audio.removeEventListener("seeked", onSeeked);
+      resolve();
+    }
+  });
+}
+
 export function PlaybackProvider({ children }: { children: React.ReactNode }) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const trackIdRef = useRef<string | null>(null);
   const loadedIdRef = useRef<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const pendingStartRef = useRef<number | null>(null);
   const [track, setTrack] = useState<PlaybackTrack | null>(null);
   const [playing, setPlaying] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -75,6 +114,7 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
 
       setTrack(next);
 
+      let refreshedSrc = false;
       try {
         if (loadedIdRef.current !== next.id) {
           const controller = new AbortController();
@@ -88,10 +128,25 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
           }
           audio.src = payload.url;
           loadedIdRef.current = next.id;
+          refreshedSrc = true;
         }
 
         if (trackIdRef.current !== next.id) return;
-        await audio.play();
+        const startAt = pendingStartRef.current;
+        if (startAt != null) {
+          if (refreshedSrc || audio.readyState < 1) await waitForMetadata(audio);
+          if (trackIdRef.current !== next.id) return;
+          await seekAudio(audio, startAt);
+          if (trackIdRef.current !== next.id) return;
+          setCurrentTime(audio.currentTime);
+        }
+        if (trackIdRef.current !== next.id) return;
+        try {
+          await audio.play();
+        } catch (error) {
+          if (!(error instanceof DOMException) || error.name !== "AbortError") throw error;
+          await audio.play();
+        }
         setPlaying(true);
       } catch (error) {
         if (trackIdRef.current !== next.id) return;
@@ -103,6 +158,18 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
       }
     },
     [stop],
+  );
+
+  const playFrom = useCallback(
+    async (next: PlaybackTrack, seconds: number) => {
+      pendingStartRef.current = Number.isFinite(seconds) ? Math.max(0, seconds) : 0;
+      try {
+        await play(next);
+      } finally {
+        pendingStartRef.current = null;
+      }
+    },
+    [play],
   );
 
   const toggle = useCallback(
@@ -138,12 +205,13 @@ export function PlaybackProvider({ children }: { children: React.ReactNode }) {
       currentTime,
       duration,
       play,
+      playFrom,
       pause,
       stop,
       seek,
       toggle,
     }),
-    [currentTime, duration, loading, pause, play, playing, seek, stop, toggle, track],
+    [currentTime, duration, loading, pause, play, playFrom, playing, seek, stop, toggle, track],
   );
 
   return (

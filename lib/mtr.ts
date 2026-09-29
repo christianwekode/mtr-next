@@ -11,6 +11,7 @@ import type {
   ChatMessageRow,
   ChatRow,
   Folder,
+  ElevenLabsTranscript,
   TranscriptionDetail,
   TranscriptionListItem,
   TranscriptionStatus,
@@ -186,6 +187,15 @@ export async function updateTranscription(id: string, patch: { short_title: stri
     .single();
   if (error || !data) throw new Error(error?.message ?? "No se pudo actualizar la transcripción");
   return data as TranscriptionListItem;
+}
+
+export async function updateTranscriptionTranscript(id: string, transcript: ElevenLabsTranscript) {
+  const { error } = await getSupabaseBrowser()
+    .from("mtr_transcriptions")
+    .update({ elevenlabs_transcript: transcript })
+    .eq("id", id)
+    .is("deleted_at", null);
+  if (error) throw new Error(error.message);
 }
 
 export async function deleteTranscription(id: string) {

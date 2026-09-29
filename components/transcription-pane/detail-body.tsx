@@ -1,4 +1,6 @@
 import { TitleBlock } from "@/components/transcription-pane/title-block";
+import { TranscriptionWithSpeakers } from "@/components/transcription-pane/transcription-with-speakers";
+import { listTitle } from "@/lib/format";
 import type { TranscriptionDetail } from "@/lib/types";
 
 export type DetailBodyProps = {
@@ -35,17 +37,27 @@ export function DetailBody({ folderName, detail }: DetailBodyProps) {
   return (
     <>
       <TitleBlock folderName={folderName} detail={detail} />
-      <article className="prose prose-neutral w-[640px] max-w-full prose-headings:mb-3 prose-headings:mt-0 prose-headings:text-[13px]/5 prose-headings:font-semibold prose-p:my-0 prose-p:mb-6 prose-p:text-[13px]/5 prose-p:text-[#141414] prose-li:text-[13px]/5">
-        {paragraphs.length === 0 ? (
-          <p>Esta transcripción no tiene texto todavía.</p>
-        ) : (
-          paragraphs.map((paragraph, index) => (
-            <p key={index} className="whitespace-pre-wrap">
-              {paragraph}
-            </p>
-          ))
-        )}
-      </article>
+      {detail.elevenlabs_transcript ? (
+        <TranscriptionWithSpeakers
+          transcriptionId={detail.id}
+          title={listTitle(detail)}
+          durationSeconds={detail.duration_seconds}
+          hasAudio={Boolean(detail.audio_storage_path)}
+          transcript={detail.elevenlabs_transcript}
+        />
+      ) : (
+        <article className="prose prose-neutral w-[640px] max-w-full prose-headings:mb-3 prose-headings:mt-0 prose-headings:text-[13px]/5 prose-headings:font-semibold prose-p:my-0 prose-p:mb-6 prose-p:text-[13px]/5 prose-p:text-[#141414] prose-li:text-[13px]/5">
+          {paragraphs.length === 0 ? (
+            <p>Esta transcripción no tiene texto todavía.</p>
+          ) : (
+            paragraphs.map((paragraph, index) => (
+              <p key={index} className="whitespace-pre-wrap">
+                {paragraph}
+              </p>
+            ))
+          )}
+        </article>
+      )}
     </>
   );
 }

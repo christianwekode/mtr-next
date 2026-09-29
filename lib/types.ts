@@ -16,6 +16,31 @@ export type TranscriptionListItem = {
   session_key: string;
 };
 
+export type ElevenLabsSpeaker = {
+  id: string;
+  name: string;
+};
+
+export type ElevenLabsWord = {
+  text?: string;
+  start?: number;
+  end?: number;
+  type?: string;
+  speaker_id?: string | null;
+};
+
+export type ElevenLabsSegment = {
+  text: string;
+  start?: number;
+  speaker: ElevenLabsSpeaker;
+  words?: ElevenLabsWord[];
+};
+
+export type ElevenLabsTranscript = {
+  segments: ElevenLabsSegment[];
+  language_code: string | null;
+};
+
 export type TranscriptionDetail = TranscriptionListItem & {
   body: string | null;
   language: string | null;
@@ -23,6 +48,7 @@ export type TranscriptionDetail = TranscriptionListItem & {
   fragment_count: number | null;
   audio_storage_path: string | null;
   error_message: string | null;
+  elevenlabs_transcript: ElevenLabsTranscript | null;
 };
 
 export type ChatRow = {
